@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: rotuprinters_db
+      POSTGRES_USER: rotuprinters_user
+      POSTGRES_PASSWORD: rotuprinters_password
+    ports:
+      - "5432:5432"
+    networks:
+      - rotuprinters_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rotuprinters_user -d rotuprinters_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+      - static_volume:/app/staticfiles
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=rotuprinters_db
+      - DB_USER=rotuprinters_user
+      - DB_PASSWORD=rotuprinters_password
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rotuprinters_network
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8001/api
+    depends_on:
+      - backend
+    networks:
+      - rotuprinters_network
+
+volumes:
+  postgres_data:
+  static_volume:
+
+networks:
+  rotuprinters_network:
+    driver: bridge
