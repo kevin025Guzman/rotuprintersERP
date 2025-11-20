@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { LogIn, Loader2 } from 'lucide-react'
+import logo from '../assets/logo.png'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -32,8 +33,13 @@ export default function Login() {
       <div className="w-full max-w-md">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
           {/* Logo */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-primary mb-2">RotuPrinters</h1>
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-primary shadow-lg">
+                <img src={logo} alt="Logo RotuPrinters" className="w-full h-full object-cover" />
+              </div>
+              <h1 className="text-4xl font-bold text-primary">RotuPrinters</h1>
+            </div>
             <p className="text-gray-600 dark:text-gray-400">Sistema de Gestión</p>
           </div>
 
