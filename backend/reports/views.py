@@ -167,15 +167,17 @@ class SalesReportView(APIView):
         # Total summary
         summary = queryset.aggregate(
             total_sales=Sum('total_amount'),
-            total_count=Count('id'),
-            avg_sale=Sum('total_amount') / Count('id') if queryset.count() > 0 else 0
+            total_count=Count('id')
         )
+        total_sales = summary['total_sales'] or Decimal('0')
+        total_count = summary['total_count'] or 0
+        average_sale = (total_sales / total_count) if total_count else Decimal('0')
         
         return Response({
             'summary': {
-                'total_sales': float(summary['total_sales'] or 0),
-                'total_count': summary['total_count'],
-                'average_sale': float(summary['avg_sale'] or 0)
+                'total_sales': float(total_sales),
+                'total_count': total_count,
+                'average_sale': float(average_sale)
             },
             'sales_by_period': [
                 {
