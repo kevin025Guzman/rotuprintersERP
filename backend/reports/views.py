@@ -60,7 +60,7 @@ class DashboardStatsView(APIView):
         total_clients = Client.objects.filter(is_active=True).count()
         
         # Recent sales (last 30 days)
-        thirty_days_ago = datetime.now() - timedelta(days=30)
+        thirty_days_ago = timezone.now() - timedelta(days=30)
         recent_sales = Sale.objects.filter(
             status=Sale.Status.COMPLETED,
             completed_at__gte=thirty_days_ago

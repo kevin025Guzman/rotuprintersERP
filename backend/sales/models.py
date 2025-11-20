@@ -146,6 +146,8 @@ class Sale(models.Model):
             self.quotation.save()
     
     def save(self, *args, **kwargs):
+        from django.utils import timezone
+
         if not self.invoice_number:
             # Auto-generate invoice number
             last_sale = Sale.objects.order_by('-id').first()
@@ -158,6 +160,9 @@ class Sale(models.Model):
             else:
                 new_number = 1
             self.invoice_number = f"FAC-{new_number:06d}"
+
+        if self.completed_at and timezone.is_naive(self.completed_at):
+            self.completed_at = timezone.make_aware(self.completed_at, timezone.get_current_timezone())
         super().save(*args, **kwargs)
 
 
