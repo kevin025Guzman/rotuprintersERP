@@ -3,14 +3,32 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from decimal import Decimal
+from pathlib import Path
+
+from django.conf import settings
+from django.utils import timezone
 
 from sales.models import Sale
 from quotations.models import Quotation
 from inventory.models import Product
 from clients.models import Client
 from users.permissions import IsAdmin
+from simple_inventory.models import SimpleProduct
+
+
+def get_logo_path():
+    """Return an absolute path to the logo image if available."""
+    candidates = [
+        Path(settings.BASE_DIR) / 'logo.png',
+        Path(settings.BASE_DIR) / 'static' / 'logo.png',
+        Path(settings.BASE_DIR).parent / 'frontend' / 'public' / 'logo.png',
+    ]
+    for path in candidates:
+        if path.exists():
+            return str(path)
+    return None
 
 
 class DashboardStatsView(APIView):
@@ -48,21 +66,20 @@ class DashboardStatsView(APIView):
             completed_at__gte=thirty_days_ago
         ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
         
-        # Today's sales (all sales created today, regardless of status)
-        from django.utils import timezone
-        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_sales = Sale.objects.filter(
-            created_at__gte=today_start
-        ).aggregate(
+        # Today's sales (respecting local timezone date)
+        today = timezone.localdate()
+        today_sales_qs = Sale.objects.filter(created_at__date=today)
+        today_sales = today_sales_qs.aggregate(
             total=Sum('total_amount'),
             count=Count('id')
         )
         
         # Today's completed sales
-        today_completed_sales = Sale.objects.filter(
+        today_completed_qs = Sale.objects.filter(
             status=Sale.Status.COMPLETED,
-            completed_at__gte=today_start
-        ).aggregate(
+            completed_at__date=today
+        )
+        today_completed_sales = today_completed_qs.aggregate(
             total=Sum('total_amount'),
             count=Count('id')
         )
@@ -183,44 +200,40 @@ class InventoryReportView(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        products = Product.objects.filter(is_active=True)
-        
-        # Low stock products
+        manual_products = SimpleProduct.objects.all().order_by('name')
+        low_stock_threshold = int(request.query_params.get('low_stock_threshold', 5))
+
         low_stock = [
             {
-                'id': p.id,
-                'name': p.name,
-                'sku': p.sku,
-                'quantity_available': float(p.quantity_available),
-                'minimum_stock': float(p.minimum_stock),
-                'status': p.stock_status
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'description': product.description,
+                'quantity_available': product.quantity,
+                'minimum_stock': low_stock_threshold,
+                'status': 'SIN_STOCK' if product.quantity == 0 else 'STOCK_BAJO'
             }
-            for p in products if p.is_low_stock
+            for product in manual_products
+            if product.quantity <= low_stock_threshold
         ]
-        
-        # Products by category
-        from inventory.models import ProductCategory
-        categories_stats = []
-        for category in ProductCategory.objects.all():
-            cat_products = products.filter(category=category)
-            categories_stats.append({
-                'category': category.name,
-                'total_products': cat_products.count(),
-                'total_value': float(
-                    sum(p.quantity_available * p.unit_cost for p in cat_products)
-                )
-            })
-        
-        # Inventory value
-        total_inventory_value = sum(
-            p.quantity_available * p.unit_cost for p in products
-        )
-        
+
+        categories_stats = [
+            {
+                'category': product.name,
+                'description': product.description,
+                'total_products': product.quantity
+            }
+            for product in manual_products
+        ]
+
+        total_units = sum(product.quantity for product in manual_products)
+
         return Response({
             'low_stock_products': low_stock,
             'categories': categories_stats,
-            'total_inventory_value': float(total_inventory_value),
-            'total_products': products.count()
+            'total_inventory_value': float(total_units),
+            'total_products': manual_products.count(),
+            'low_stock_threshold': low_stock_threshold
         })
 
 
@@ -318,18 +331,22 @@ class DailySalesPDFView(APIView):
     
     def get(self, request):
         from django.http import HttpResponse
-        from django.utils import timezone
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
         from reportlab.lib.enums import TA_CENTER
         from io import BytesIO
         
-        # Get today's sales
-        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_sales = Sale.objects.filter(created_at__gte=today_start).order_by('-created_at')
+        # Get today's sales using local date boundaries
+        today = timezone.localdate()
+        today_sales = (
+            Sale.objects
+            .filter(created_at__date=today)
+            .order_by('-created_at')
+            .prefetch_related('items__product')
+        )
         
         # Calculate totals
         total_amount = today_sales.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
@@ -342,7 +359,7 @@ class DailySalesPDFView(APIView):
         elements = []
         styles = getSampleStyleSheet()
         
-        # Title
+        # Title with optional logo inline
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
@@ -351,9 +368,25 @@ class DailySalesPDFView(APIView):
             spaceAfter=30,
             alignment=TA_CENTER
         )
-        
-        elements.append(Paragraph("RotuPrinters", title_style))
-        elements.append(Paragraph(f"Reporte de Ventas del Día - {timezone.now().strftime('%d/%m/%Y')}", styles['Heading2']))
+
+        logo_path = get_logo_path()
+        if logo_path:
+            logo = Image(logo_path, width=1.0 * inch, height=1.0 * inch)
+            title_paragraph = Paragraph("RotuPrinters", title_style)
+            from reportlab.platypus import Table
+            header_table = Table([[logo, title_paragraph]], colWidths=[1.2 * inch, 5.8 * inch])
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            header_table.hAlign = 'CENTER'
+            elements.append(header_table)
+            elements.append(Spacer(1, 0.1 * inch))
+        else:
+            elements.append(Paragraph("RotuPrinters", title_style))
+        elements.append(Paragraph(f"Reporte de Ventas del Día - {today.strftime('%d/%m/%Y')}", styles['Heading2']))
         elements.append(Spacer(1, 0.3*inch))
         
         # Summary
@@ -379,19 +412,25 @@ class DailySalesPDFView(APIView):
             elements.append(Paragraph("Detalle de Ventas", styles['Heading3']))
             elements.append(Spacer(1, 0.2*inch))
             
-            sales_data = [['Factura', 'Cliente', 'Estado', 'Total', 'Hora']]
+            sales_data = [['Factura', 'Cliente', 'Productos', 'Estado', 'Total', 'Hora']]
             
             for sale in today_sales:
+                created_at_local = timezone.localtime(sale.created_at)
                 status_text = 'Completada' if sale.status == Sale.Status.COMPLETED else 'Pendiente'
+                products_text = ', '.join(filter(None, [
+                    item.description or (item.product.name if item.product else None)
+                    for item in sale.items.all()
+                ])) or 'N/D'
                 sales_data.append([
                     sale.invoice_number,
                     sale.client.name[:30],
+                    products_text[:50] + ('…' if len(products_text) > 50 else ''),
                     status_text,
                     f'L {sale.total_amount:.2f}',
-                    sale.created_at.strftime('%H:%M')
+                    created_at_local.strftime('%H:%M')
                 ])
             
-            sales_table = Table(sales_data, colWidths=[1.2*inch, 2.5*inch, 1.2*inch, 1.2*inch, 0.9*inch])
+            sales_table = Table(sales_data, colWidths=[1.2*inch, 1.8*inch, 2.3*inch, 1.0*inch, 1.0*inch, 0.8*inch])
             sales_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0055A4')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -427,17 +466,21 @@ class TotalSalesPDFView(APIView):
     
     def get(self, request):
         from django.http import HttpResponse
-        from django.utils import timezone
         from reportlab.lib import colors
         from reportlab.lib.pagesizes import letter
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
-        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
         from reportlab.lib.enums import TA_CENTER
         from io import BytesIO
         
         # Get all completed sales
-        all_sales = Sale.objects.filter(status=Sale.Status.COMPLETED).order_by('-completed_at')
+        all_sales = (
+            Sale.objects
+            .filter(status=Sale.Status.COMPLETED)
+            .order_by('-completed_at')
+            .prefetch_related('items__product')
+        )
         
         # Calculate totals
         total_amount = all_sales.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
@@ -449,7 +492,7 @@ class TotalSalesPDFView(APIView):
         elements = []
         styles = getSampleStyleSheet()
         
-        # Title
+        # Title with optional logo inline
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
@@ -459,8 +502,24 @@ class TotalSalesPDFView(APIView):
             alignment=TA_CENTER
         )
         
-        elements.append(Paragraph("RotuPrinters", title_style))
-        elements.append(Paragraph(f"Reporte de Ventas Totales - {timezone.now().strftime('%d/%m/%Y')}", styles['Heading2']))
+        logo_path = get_logo_path()
+        if logo_path:
+            logo = Image(logo_path, width=1.0 * inch, height=1.0 * inch)
+            title_paragraph = Paragraph("RotuPrinters", title_style)
+            from reportlab.platypus import Table
+            header_table = Table([[logo, title_paragraph]], colWidths=[1.2 * inch, 5.8 * inch])
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            header_table.hAlign = 'CENTER'
+            elements.append(header_table)
+            elements.append(Spacer(1, 0.1 * inch))
+        else:
+            elements.append(Paragraph("RotuPrinters", title_style))
+        elements.append(Paragraph(f"Reporte de Ventas Totales - {timezone.localdate().strftime('%d/%m/%Y')}", styles['Heading2']))
         elements.append(Spacer(1, 0.3*inch))
         
         # Summary
@@ -485,17 +544,22 @@ class TotalSalesPDFView(APIView):
             elements.append(Paragraph("Detalle de Ventas", styles['Heading3']))
             elements.append(Spacer(1, 0.2*inch))
             
-            sales_data = [['Factura', 'Cliente', 'Total', 'Fecha']]
+            sales_data = [['Factura', 'Cliente', 'Productos', 'Total', 'Fecha']]
             
             for sale in all_sales[:100]:  # Limit to 100 sales for PDF size
+                products_text = ', '.join(filter(None, [
+                    item.description or (item.product.name if item.product else None)
+                    for item in sale.items.all()
+                ])) or 'N/D'
                 sales_data.append([
                     sale.invoice_number,
                     sale.client.name[:30],
+                    products_text[:60] + ('…' if len(products_text) > 60 else ''),
                     f'L {sale.total_amount:.2f}',
-                    sale.completed_at.strftime('%d/%m/%Y') if sale.completed_at else sale.created_at.strftime('%d/%m/%Y')
+                    timezone.localtime(sale.completed_at or sale.created_at).strftime('%d/%m/%Y')
                 ])
             
-            sales_table = Table(sales_data, colWidths=[1.5*inch, 2.5*inch, 1.5*inch, 1.5*inch])
+            sales_table = Table(sales_data, colWidths=[1.2*inch, 1.8*inch, 2.8*inch, 1.2*inch, 1.0*inch])
             sales_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0055A4')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),

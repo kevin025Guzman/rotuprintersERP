@@ -59,12 +59,6 @@ export default function Dashboard() {
       color: 'bg-green-500',
     },
     {
-      title: 'Ventas Totales',
-      value: `L ${stats?.sales?.total_amount?.toLocaleString('es-HN', { minimumFractionDigits: 2 }) || '0.00'}`,
-      icon: DollarSign,
-      color: 'bg-blue-500',
-    },
-    {
       title: 'Ventas (30 días)',
       value: `L ${stats?.sales?.recent_30_days?.toLocaleString('es-HN', { minimumFractionDigits: 2 }) || '0.00'}`,
       icon: TrendingUp,
@@ -155,12 +149,6 @@ export default function Dashboard() {
               <span className="text-gray-600 dark:text-gray-400">Stock Bajo</span>
               <span className="font-semibold text-yellow-600">
                 {stats?.inventory?.low_stock || 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-400">Sin Stock</span>
-              <span className="font-semibold text-red-600">
-                {stats?.inventory?.out_of_stock || 0}
               </span>
             </div>
           </div>

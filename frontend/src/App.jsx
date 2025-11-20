@@ -10,6 +10,8 @@ import Sales from './pages/Sales'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
 import Profile from './pages/Profile'
+import SimpleInventory from './pages/SimpleInventory'
+import SimpleProductForm from './pages/SimpleProductForm'
 
 function App() {
   return (
@@ -20,6 +22,9 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="clients" element={<Clients />} />
           <Route path="products" element={<Products />} />
+          <Route path="simple-inventory" element={<SimpleInventory />} />
+          <Route path="simple-inventory/new" element={<SimpleProductForm />} />
+          <Route path="simple-inventory/edit/:id" element={<SimpleProductForm />} />
           <Route path="quotations" element={<Quotations />} />
           <Route path="sales" element={<Sales />} />
           <Route path="reports" element={<Reports />} />

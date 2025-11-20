@@ -257,6 +257,35 @@ npm run test
 
 ## 📦 Despliegue en Producción
 
+### Railway / Dockerfile Único
+
+1. **Dockerfile** (en la raíz) — ya incluido en este repo. Construye backend y frontend en etapas separadas y arranca Gunicorn:
+   ```dockerfile
+   FROM python:3.11-slim AS backend-build
+   ...
+   CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn rotuprinters.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
+   ```
+
+2. **Procfile** (en la raíz) — Railway lo detecta automáticamente:
+   ```
+   web: gunicorn rotuprinters.wsgi:application --bind 0.0.0.0:${PORT:-8000}
+   ```
+
+3. **Variables de entorno recomendadas en Railway**
+   | Variable | Descripción |
+   | --- | --- |
+   | `SECRET_KEY` | Clave segura de Django |
+   | `DEBUG` | `False` en producción |
+   | `ALLOWED_HOSTS` | Ej. `miapp.up.railway.app` |
+   | `DATABASE_URL` | Railway la provee al conectar PostgreSQL |
+   | `JWT_SECRET_KEY` | Si deseas separarla de `SECRET_KEY` |
+   | `CORS_ALLOWED_ORIGINS` | Comma-separated con tu dominio público |
+   | `ISV_TAX_RATE` | Opcional para personalizar el impuesto |
+
+4. **Comandos automáticos** — El contenedor ejecuta `collectstatic`, `migrate` y luego Gunicorn.
+
+> Railway detecta automáticamente el `PORT`; no necesitas exponerlo manualmente.
+
 ### Configuración para PostgreSQL
 
 Editar `backend/.env`:
@@ -287,13 +316,9 @@ docker-compose exec backend python manage.py migrate
 SECRET_KEY=tu-secret-key-segura
 DEBUG=False
 ALLOWED_HOSTS=tu-dominio.com
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=rotuprinters_db
-DB_USER=usuario
-DB_PASSWORD=password
-DB_HOST=db
-DB_PORT=5432
+DATABASE_URL=postgres://usuario:password@host:5432/rotuprinters_db
 JWT_SECRET_KEY=tu-jwt-secret
+CORS_ALLOWED_ORIGINS=https://tu-dominio.com
 ```
 
 ### Frontend

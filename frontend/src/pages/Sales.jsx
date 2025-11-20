@@ -2,28 +2,109 @@ import { useEffect, useState } from 'react'
 import { saleService } from '../services/saleService'
 import { clientService } from '../services/clientService'
 import { productService } from '../services/productService'
-import { Plus, Eye, CheckCircle, XCircle, FileDown, Trash2 } from 'lucide-react'
+import { Plus, Eye, CheckCircle, XCircle, FileDown, Trash2, Filter, X as CloseIcon } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function Sales() {
-  const [sales, setSales] = useState([])
+  const [allSales, setAllSales] = useState([])
+  const [filteredSales, setFilteredSales] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [viewingSale, setViewingSale] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const initialFilters = {
+    status: '',
+    payment_method: '',
+    search: '',
+    date_from: '',
+    date_to: ''
+  }
+  const [filters, setFilters] = useState(initialFilters)
+  const [appliedFilters, setAppliedFilters] = useState(initialFilters)
+  const [page, setPage] = useState(1)
+  const pageSize = 10
 
   useEffect(() => {
     loadSales()
   }, [])
 
+  useEffect(() => {
+    applyFilters()
+  }, [appliedFilters, allSales])
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(filteredSales.length / pageSize))
+    if (page > totalPages) {
+      setPage(1)
+    }
+  }, [filteredSales.length, page, pageSize])
+
   const loadSales = async () => {
     try {
+      setLoading(true)
       const response = await saleService.getAll()
-      setSales(response.data.results || response.data)
+      const data = response.data?.results || response.data || []
+      const list = Array.isArray(data) ? data : []
+      setAllSales(list)
+      setFilteredSales(list)
     } catch (error) {
       console.error('Error loading sales:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const applyFilters = () => {
+    let filtered = [...allSales]
+
+    if (appliedFilters.search) {
+      const term = appliedFilters.search.toLowerCase()
+      filtered = filtered.filter((sale) =>
+        sale.client_name?.toLowerCase().includes(term) ||
+        sale.invoice_number?.toLowerCase().includes(term) ||
+        sale.created_by_username?.toLowerCase().includes(term)
+      )
+    }
+
+    if (appliedFilters.status) {
+      filtered = filtered.filter((sale) => sale.status === appliedFilters.status)
+    }
+
+    if (appliedFilters.payment_method) {
+      filtered = filtered.filter((sale) => sale.payment_method === appliedFilters.payment_method)
+    }
+
+    if (appliedFilters.date_from) {
+      const fromDate = new Date(appliedFilters.date_from)
+      filtered = filtered.filter((sale) => new Date(sale.created_at) >= fromDate)
+    }
+
+    if (appliedFilters.date_to) {
+      const toDate = new Date(appliedFilters.date_to)
+      toDate.setHours(23, 59, 59, 999)
+      filtered = filtered.filter((sale) => new Date(sale.created_at) <= toDate)
+    }
+
+    setFilteredSales(filtered)
+  }
+
+  const handleApplyFilters = () => {
+    setAppliedFilters(filters)
+    setPage(1)
+  }
+
+  const handleClearFilters = () => {
+    setFilters(initialFilters)
+    setAppliedFilters(initialFilters)
+    setPage(1)
+  }
+
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / pageSize))
+  const paginatedSales = filteredSales.slice((page - 1) * pageSize, page * pageSize)
+
+  const goToPage = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return
+    setPage(newPage)
   }
 
   const handleComplete = async (id) => {
@@ -61,7 +142,7 @@ export default function Sales() {
   const handleDownloadPDF = async (id) => {
     try {
       // Crear un enlace temporal para descargar el PDF
-      const sale = sales.find(s => s.id === id)
+      const sale = allSales.find(s => s.id === id)
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/sales/${id}/generate_pdf/`
       
       // Obtener el token de autenticación
@@ -97,11 +178,94 @@ export default function Sales() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Ventas y Facturas</h1>
-        <button onClick={() => setShowModal(true)} className="btn-primary flex items-center">
-          <Plus className="w-5 h-5 mr-2" />
-          Nueva Venta
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            {showFilters ? <CloseIcon className="w-4 h-4" /> : <Filter className="w-4 h-4" />}
+            Filtros
+          </button>
+          <button onClick={() => setShowModal(true)} className="btn-primary flex items-center">
+            <Plus className="w-5 h-5 mr-2" />
+            Nueva Venta
+          </button>
+        </div>
       </div>
+
+      {showFilters && (
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Buscar</label>
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="input-field"
+                placeholder="Cliente, factura o vendedor"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Estado</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="input-field"
+              >
+                <option value="">Todos</option>
+                <option value="PENDING">Pendiente</option>
+                <option value="COMPLETED">Completada</option>
+                <option value="CANCELLED">Cancelada</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Forma de pago</label>
+              <select
+                value={filters.payment_method}
+                onChange={(e) => setFilters({ ...filters, payment_method: e.target.value })}
+                className="input-field"
+              >
+                <option value="">Todas</option>
+                <option value="CASH">Efectivo</option>
+                <option value="TRANSFER">Transferencia</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Desde</label>
+              <input
+                type="date"
+                value={filters.date_from}
+                onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filters.date_to}
+                onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
+                className="input-field"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              className="btn-outline"
+              onClick={handleClearFilters}
+            >
+              Limpiar
+            </button>
+            <button
+              className="btn-primary"
+              onClick={handleApplyFilters}
+            >
+              Aplicar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="table-container">
         <table className="table">
@@ -118,7 +282,7 @@ export default function Sales() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {sales.map((sale) => (
+            {paginatedSales.map((sale) => (
               <tr key={sale.id} className="table-row">
                 <td className="px-6 py-4 text-sm font-medium">{sale.invoice_number}</td>
                 <td className="px-6 py-4 text-sm">{sale.client_name}</td>
@@ -153,6 +317,30 @@ export default function Sales() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+          <div className="text-sm text-gray-600 dark:text-gray-300">
+            Página {page} de {totalPages} — {filteredSales.length} registros
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="btn-outline"
+              disabled={page === 1}
+              onClick={() => goToPage(page - 1)}
+            >
+              Anterior
+            </button>
+            <button
+              className="btn-outline"
+              disabled={page === totalPages}
+              onClick={() => goToPage(page + 1)}
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
 
       {showModal && <SaleModal onClose={() => { setShowModal(false); loadSales() }} />}
       {viewingSale && <SaleDetailModal sale={viewingSale} onClose={() => setViewingSale(null)} />}
@@ -279,9 +467,7 @@ function SaleModal({ onClose }) {
                 <label className="block text-sm font-medium mb-1">Método de Pago *</label>
                 <select value={formData.payment_method} onChange={(e) => setFormData({...formData, payment_method: e.target.value})} className="input-field">
                   <option value="CASH">Efectivo</option>
-                  <option value="CARD">Tarjeta</option>
                   <option value="TRANSFER">Transferencia</option>
-                  <option value="CHECK">Cheque</option>
                 </select>
               </div>
               <div>
@@ -402,9 +588,7 @@ function SaleDetailModal({ sale, onClose }) {
                 <div><span className="font-medium">Vendedor:</span> {sale.created_by_username}</div>
                 <div><span className="font-medium">Fecha:</span> {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm')}</div>
                 <div><span className="font-medium">Método de Pago:</span> {
-                  sale.payment_method === 'CASH' ? 'Efectivo' :
-                  sale.payment_method === 'CARD' ? 'Tarjeta' :
-                  sale.payment_method === 'TRANSFER' ? 'Transferencia' : 'Cheque'
+                  sale.payment_method === 'CASH' ? 'Efectivo' : 'Transferencia'
                 }</div>
                 <div>
                   <span className="font-medium">Estado:</span>{' '}

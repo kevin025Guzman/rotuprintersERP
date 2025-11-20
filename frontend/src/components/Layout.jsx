@@ -22,6 +22,7 @@ export default function Layout() {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Clientes', href: '/clients', icon: Users },
     { name: 'Productos', href: '/products', icon: Package },
+    { name: 'Inventario', href: '/simple-inventory', icon: Package },
     { name: 'Cotizaciones', href: '/quotations', icon: FileText },
     { name: 'Ventas', href: '/sales', icon: DollarSign },
     { name: 'Reportes', href: '/reports', icon: BarChart3 },

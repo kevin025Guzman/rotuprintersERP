@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/clients/', include('clients.urls')),
     path('api/inventory/', include('inventory.urls')),
+    path('api/simple-inventory/', include('simple_inventory.urls')),
     path('api/quotations/', include('quotations.urls')),
     path('api/sales/', include('sales.urls')),
     path('api/reports/', include('reports.urls')),

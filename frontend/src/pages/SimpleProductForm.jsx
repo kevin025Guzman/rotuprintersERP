@@ -11,7 +11,6 @@ export default function SimpleProductForm() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    sku: '',
     quantity: 0
   });
   
@@ -26,7 +25,6 @@ export default function SimpleProductForm() {
           setFormData({
             name: product.name || '',
             description: product.description || '',
-            sku: product.sku || '',
             quantity: product.quantity || 0
           });
         } catch (error) {
@@ -118,21 +116,6 @@ export default function SimpleProductForm() {
                 onChange={handleChange}
                 className="input-field w-full"
                 placeholder="Ej: Taza personalizada 12oz"
-                required
-              />
-            </div>
-
-            <div className="col-span-2 md:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Código (SKU) *
-              </label>
-              <input
-                type="text"
-                name="sku"
-                value={formData.sku}
-                onChange={handleChange}
-                className="input-field w-full"
-                placeholder="Ej: TAZA-12OZ"
                 required
               />
             </div>

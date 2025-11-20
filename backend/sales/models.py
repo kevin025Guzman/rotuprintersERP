@@ -14,9 +14,7 @@ class Sale(models.Model):
     
     class PaymentMethod(models.TextChoices):
         CASH = 'CASH', 'Efectivo'
-        CARD = 'CARD', 'Tarjeta'
         TRANSFER = 'TRANSFER', 'Transferencia'
-        CHECK = 'CHECK', 'Cheque'
     
     invoice_number = models.CharField(
         max_length=50,

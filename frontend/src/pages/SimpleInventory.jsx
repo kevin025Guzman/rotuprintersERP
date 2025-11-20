@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, Edit, Trash2, Package, 
-  Search, Filter, Sliders, X, PlusCircle
+  Search, Filter, Sliders, X, PlusCircle, Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
 import { simpleInventoryService } from '../services/simpleInventoryService';
 
 export default function SimpleInventory() {
@@ -20,6 +21,16 @@ export default function SimpleInventory() {
     key: 'name',
     direction: 'asc'
   });
+
+  const loadLogoImage = () => (
+    new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = '/logo.png';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+    })
+  );
 
   const loadProducts = async () => {
     try {
@@ -72,6 +83,54 @@ export default function SimpleInventory() {
     setSortConfig({ key, direction });
   };
 
+  const handleExportPdf = async () => {
+    const doc = new jsPDF();
+
+    try {
+      const logo = await loadLogoImage();
+      doc.addImage(logo, 'PNG', 14, 10, 18, 18);
+    } catch (error) {
+      // Si falla la carga del logo, continuamos sin él
+    }
+
+    doc.setFontSize(20);
+    doc.text('RotuPrinters', 36, 18);
+    doc.setFontSize(14);
+    doc.text('Inventario Manual', 36, 26);
+    doc.setFontSize(10);
+    doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 34);
+
+    const tableTop = 40;
+    const rowHeight = 8;
+    let currentY = tableTop;
+
+    const headers = ['Nombre', 'Descripción', 'Cantidad'];
+    doc.setFontSize(11);
+    headers.forEach((header, index) => {
+      const x = 14 + index * 60;
+      doc.text(header, x, currentY);
+    });
+
+    currentY += 4;
+    doc.setLineWidth(0.1);
+    doc.line(14, currentY, 196, currentY);
+    currentY += 6;
+
+    sortedProducts.forEach((product) => {
+      if (currentY > 280) {
+        doc.addPage();
+        currentY = 20;
+      }
+      const descText = doc.splitTextToSize(product.description || 'Sin descripción', 90);
+      doc.text(product.name, 14, currentY);
+      doc.text(descText, 74, currentY);
+      doc.text(`${product.quantity}`, 164, currentY);
+      currentY += rowHeight + (descText.length - 1) * 5;
+    });
+
+    doc.save(`inventario-${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
   const sortedProducts = [...products].sort((a, b) => {
     if (a[sortConfig.key] < b[sortConfig.key]) {
       return sortConfig.direction === 'asc' ? -1 : 1;
@@ -104,6 +163,13 @@ export default function SimpleInventory() {
         </div>
         
         <div className="flex gap-2">
+          <button
+            onClick={handleExportPdf}
+            className="btn-outline flex items-center gap-2"
+          >
+            <Download size={16} />
+            Descargar PDF
+          </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="btn-secondary flex items-center gap-2"
@@ -195,7 +261,7 @@ export default function SimpleInventory() {
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Código
+                  Descripción
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer"
@@ -230,9 +296,9 @@ export default function SimpleInventory() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {product.sku}
-                      </span>
+                      <div className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-sm">
+                        {product.description || 'Sin descripción'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
