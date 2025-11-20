@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { saleService } from '../services/saleService'
 import { clientService } from '../services/clientService'
 import { productService } from '../services/productService'
+import { useAuthStore } from '../store/authStore'
 import { Plus, Eye, CheckCircle, XCircle, FileDown, Trash2, Filter, X as CloseIcon } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function Sales() {
+  const { user } = useAuthStore()
   const [allSales, setAllSales] = useState([])
   const [filteredSales, setFilteredSales] = useState([])
   const [loading, setLoading] = useState(true)
@@ -19,10 +21,45 @@ export default function Sales() {
     date_from: '',
     date_to: ''
   }
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  const toggleSelectAll = () => {
+    const currentPageIds = paginatedSales.map((sale) => sale.id)
+    if (currentPageIds.every((id) => selectedIds.includes(id))) {
+      setSelectedIds((prev) => prev.filter((id) => !currentPageIds.includes(id)))
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...currentPageIds])))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) {
+      alert('Seleccione al menos una venta para eliminar.')
+      return
+    }
+    if (!window.confirm('¿Eliminar permanentemente las ventas seleccionadas? Esta acción no se puede deshacer.')) {
+      return
+    }
+    try {
+      await saleService.deleteBulk(selectedIds)
+      alert('Ventas eliminadas correctamente')
+      setSelectedIds([])
+      loadSales()
+    } catch (error) {
+      alert('Error al eliminar ventas: ' + (error.response?.data?.detail || error.message))
+    }
+  }
   const [filters, setFilters] = useState(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState(initialFilters)
   const [page, setPage] = useState(1)
   const pageSize = 10
+  const [selectedIds, setSelectedIds] = useState([])
+  const isAdmin = user?.role === 'ADMIN'
 
   useEffect(() => {
     loadSales()
@@ -172,6 +209,43 @@ export default function Sales() {
     }
   }
 
+  const handleDownloadFilteredPDF = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (appliedFilters.status) params.append('status', appliedFilters.status)
+      if (appliedFilters.payment_method) params.append('payment_method', appliedFilters.payment_method)
+      if (appliedFilters.search) params.append('search', appliedFilters.search)
+      if (appliedFilters.date_from) params.append('date_from', appliedFilters.date_from)
+      if (appliedFilters.date_to) params.append('date_to', appliedFilters.date_to)
+
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
+      const url = `${baseUrl}/sales/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`
+
+      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+      const token = authStorage?.state?.token
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) throw new Error('Error al generar PDF')
+
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = 'Ventas_Filtradas.pdf'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      alert('Error al descargar PDF: ' + error.message)
+    }
+  }
+
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
 
   return (
@@ -179,6 +253,23 @@ export default function Sales() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Ventas y Facturas</h1>
         <div className="flex gap-2">
+          {isAdmin && (
+            <button
+              onClick={handleDeleteSelected}
+              className="btn-danger flex items-center gap-2 disabled:opacity-60"
+              disabled={selectedIds.length === 0}
+            >
+              <Trash2 className="w-4 h-4" />
+              Eliminar ({selectedIds.length})
+            </button>
+          )}
+          <button
+            onClick={handleDownloadFilteredPDF}
+            className="btn-outline flex items-center gap-2"
+          >
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="btn-secondary flex items-center gap-2"
@@ -271,6 +362,15 @@ export default function Sales() {
         <table className="table">
           <thead className="table-header">
             <tr>
+              {isAdmin && (
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={paginatedSales.length > 0 && paginatedSales.every((sale) => selectedIds.includes(sale.id))}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase"># Factura</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Cliente</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Vendedor</th>
@@ -284,6 +384,15 @@ export default function Sales() {
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {paginatedSales.map((sale) => (
               <tr key={sale.id} className="table-row">
+                {isAdmin && (
+                  <td className="px-4 py-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(sale.id)}
+                      onChange={() => toggleSelect(sale.id)}
+                    />
+                  </td>
+                )}
                 <td className="px-6 py-4 text-sm font-medium">{sale.invoice_number}</td>
                 <td className="px-6 py-4 text-sm">{sale.client_name}</td>
                 <td className="px-6 py-4 text-sm">{sale.created_by_username}</td>

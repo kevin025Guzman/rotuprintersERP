@@ -30,12 +30,13 @@ class QuotationSerializer(serializers.ModelSerializer):
             'id', 'quotation_number', 'client', 'client_name',
             'created_by', 'created_by_username', 'status',
             'subtotal', 'discount_percentage', 'discount_amount',
+            'apply_tax', 'tax_rate', 'tax_amount',
             'total_amount', 'notes', 'valid_until',
             'created_at', 'updated_at', 'items'
         ]
         read_only_fields = [
             'id', 'quotation_number', 'created_by',
-            'subtotal', 'discount_amount', 'total_amount',
+            'subtotal', 'discount_amount', 'tax_amount', 'total_amount',
             'created_at', 'updated_at'
         ]
     

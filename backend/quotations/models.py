@@ -56,6 +56,19 @@ class Quotation(models.Model):
         default=0,
         verbose_name='Monto Descuento'
     )
+    apply_tax = models.BooleanField(default=False, verbose_name='Aplicar ISV')
+    tax_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('15.00'),
+        verbose_name='Tasa de Impuesto (%)'
+    )
+    tax_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        verbose_name='Monto Impuesto'
+    )
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -81,7 +94,12 @@ class Quotation(models.Model):
         """Calculate subtotal and total from items."""
         self.subtotal = sum(item.total for item in self.items.all())
         self.discount_amount = self.subtotal * (self.discount_percentage / Decimal('100'))
-        self.total_amount = self.subtotal - self.discount_amount
+        taxable_base = self.subtotal - self.discount_amount
+        if self.apply_tax:
+            self.tax_amount = taxable_base * (self.tax_rate / Decimal('100'))
+        else:
+            self.tax_amount = Decimal('0')
+        self.total_amount = taxable_base + self.tax_amount
         self.save()
     
     def save(self, *args, **kwargs):

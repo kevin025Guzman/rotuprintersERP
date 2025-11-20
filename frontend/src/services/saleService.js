@@ -10,4 +10,5 @@ export const saleService = {
   cancel: (id) => api.post(`/sales/${id}/cancel/`),
   fromQuotation: (data) => api.post('/sales/from_quotation/', data),
   generatePDF: (id) => api.get(`/sales/${id}/generate_pdf/`),
+  deleteBulk: (ids) => api.post('/sales/delete_bulk/', { ids }),
 }

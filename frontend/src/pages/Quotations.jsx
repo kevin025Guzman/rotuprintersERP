@@ -9,6 +9,7 @@ export default function Quotations() {
   const [quotations, setQuotations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [viewingQuotation, setViewingQuotation] = useState(null)
 
   useEffect(() => {
     loadQuotations()
@@ -23,6 +24,99 @@ export default function Quotations() {
     } finally {
       setLoading(false)
     }
+
+function QuotationDetailModal({ quotation, onClose }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold">Cotización {quotation.quotation_number}</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <XCircle className="w-6 h-6" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Información General</h3>
+              <div className="space-y-2 text-sm">
+                <div><span className="font-medium">Cliente:</span> {quotation.client_name}</div>
+                <div><span className="font-medium">Vendedor:</span> {quotation.created_by_username || 'N/D'}</div>
+                <div><span className="font-medium">Estado:</span> {
+                  quotation.status === 'PENDING' ? 'Pendiente' :
+                  quotation.status === 'APPROVED' ? 'Aprobada' :
+                  quotation.status === 'CONVERTED' ? 'Convertida' : 'Rechazada'
+                }</div>
+                <div><span className="font-medium">Creada:</span> {format(new Date(quotation.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                {quotation.valid_until && (
+                  <div><span className="font-medium">Válida hasta:</span> {format(new Date(quotation.valid_until), 'dd/MM/yyyy')}</div>
+                )}
+                {quotation.notes && (
+                  <div><span className="font-medium">Notas:</span> {quotation.notes}</div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Resumen Financiero</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>L {parseFloat(quotation.subtotal || 0).toFixed(2)}</span>
+                </div>
+                {quotation.discount_amount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Descuento ({quotation.discount_percentage}%):</span>
+                    <span>- L {parseFloat(quotation.discount_amount).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xl font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>L {parseFloat(quotation.total_amount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {quotation.items && quotation.items.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Items</h3>
+              <div className="table-container">
+                <table className="table">
+                  <thead className="table-header">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Producto</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Descripción</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Cantidad</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Precio/pulg²</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {quotation.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-2 text-sm">{item.product_name}</td>
+                        <td className="px-4 py-2 text-sm">{item.description}</td>
+                        <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
+                        <td className="px-4 py-2 text-sm text-right">L {parseFloat(item.price_per_square_inch).toFixed(2)}</td>
+                        <td className="px-4 py-2 text-sm text-right font-semibold">L {parseFloat(item.total).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <button onClick={onClose} className="btn-primary">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
   }
 
   const handleApprove = async (id) => {
@@ -42,6 +136,15 @@ export default function Quotations() {
       } catch (error) {
         alert('Error al rechazar cotización')
       }
+    }
+  }
+
+  const handleView = async (id) => {
+    try {
+      const response = await quotationService.getById(id)
+      setViewingQuotation(response.data)
+    } catch (error) {
+      alert('Error al cargar la cotización')
     }
   }
 
@@ -91,7 +194,7 @@ export default function Quotations() {
                 </td>
                 <td className="px-6 py-4 text-sm">{format(new Date(quotation.created_at), 'dd/MM/yyyy')}</td>
                 <td className="px-6 py-4 text-right">
-                  <button className="text-blue-600 hover:text-blue-900 mr-2"><Eye className="w-5 h-5" /></button>
+                  <button onClick={() => handleView(quotation.id)} className="text-blue-600 hover:text-blue-900 mr-2"><Eye className="w-5 h-5" /></button>
                   {quotation.status === 'PENDING' && (
                     <>
                       <button onClick={() => handleApprove(quotation.id)} className="text-green-600 hover:text-green-900 mr-2"><CheckCircle className="w-5 h-5" /></button>
@@ -106,6 +209,12 @@ export default function Quotations() {
       </div>
 
       {showModal && <QuotationModal onClose={() => { setShowModal(false); loadQuotations() }} />}
+      {viewingQuotation && (
+        <QuotationDetailModal
+          quotation={viewingQuotation}
+          onClose={() => setViewingQuotation(null)}
+        />
+      )}
     </div>
   )
 }
@@ -116,6 +225,7 @@ function QuotationModal({ onClose }) {
   const [formData, setFormData] = useState({
     client: '',
     notes: '',
+    apply_tax: false,
     items: []
   })
   const [saving, setSaving] = useState(false)
@@ -157,7 +267,7 @@ function QuotationModal({ onClose }) {
     setFormData({ ...formData, items: newItems })
   }
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return formData.items.reduce((sum, item) => {
       if (item.width_inches && item.height_inches && item.price_per_square_inch) {
         const squareInches = parseFloat(item.width_inches) * parseFloat(item.height_inches)
@@ -168,6 +278,12 @@ function QuotationModal({ onClose }) {
     }, 0)
   }
 
+  const subtotal = calculateSubtotal()
+  const discountAmount = 0
+  const taxRate = 0.15
+  const taxAmount = formData.apply_tax ? subtotal * taxRate : 0
+  const totalEstimate = subtotal - discountAmount + taxAmount
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (formData.items.length === 0) {
@@ -176,7 +292,13 @@ function QuotationModal({ onClose }) {
     }
     setSaving(true)
     try {
-      await quotationService.create(formData)
+      await quotationService.create({
+        ...formData,
+        subtotal,
+        discount_amount: discountAmount,
+        tax_amount: taxAmount,
+        total_amount: totalEstimate,
+      })
       onClose()
     } catch (error) {
       alert('Error al crear cotización: ' + (error.response?.data?.detail || error.message))
@@ -257,8 +379,18 @@ function QuotationModal({ onClose }) {
             </div>
 
             <div className="border-t pt-4">
-              <div className="text-right">
-                <p className="text-2xl font-bold">Total: L {calculateTotal().toFixed(2)}</p>
+              <label className="inline-flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={formData.apply_tax}
+                  onChange={(e) => setFormData({ ...formData, apply_tax: e.target.checked })}
+                />
+                Aplicar ISV 15%
+              </label>
+              <div className="text-right space-y-1 mt-4">
+                <p>Subtotal: L {subtotal.toFixed(2)}</p>
+                {formData.apply_tax && <p>ISV (15%): L {taxAmount.toFixed(2)}</p>}
+                <p className="text-2xl font-bold">Total: L {totalEstimate.toFixed(2)}</p>
               </div>
             </div>
 

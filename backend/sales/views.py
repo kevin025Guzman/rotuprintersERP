@@ -1,10 +1,16 @@
-from rest_framework import viewsets, status
+from pathlib import Path
+from datetime import datetime, time
+from decimal import Decimal
+
+from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from django.shortcuts import get_object_or_404
+from django.conf import settings
+from django.utils import timezone
+from django.db.models import Sum
 
 from .models import Sale, SaleItem
 from .serializers import (
@@ -13,6 +19,20 @@ from .serializers import (
 )
 from quotations.models import Quotation
 from users.permissions import IsAdminOrSeller
+
+
+def get_logo_path():
+    candidates = [
+        Path(settings.BASE_DIR) / 'logo.png',
+        Path(settings.BASE_DIR) / 'static' / 'logo.png',
+        Path(settings.BASE_DIR) / 'staticfiles' / 'logo.png',
+        Path(settings.BASE_DIR).parent / 'frontend' / 'public' / 'logo.png',
+        Path(settings.BASE_DIR) / 'frontend_dist' / 'logo.png',
+    ]
+    for path in candidates:
+        if path.exists():
+            return str(path)
+    return None
 
 
 class SaleViewSet(viewsets.ModelViewSet):
@@ -214,6 +234,192 @@ class SaleViewSet(viewsets.ModelViewSet):
         response.write(pdf)
         
         return response
+
+    @action(detail=False, methods=['get'])
+    def export_pdf(self, request):
+        """Export filtered sales list as PDF respecting current filters."""
+        from io import BytesIO
+        from django.http import HttpResponse
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+        from reportlab.lib.enums import TA_CENTER
+
+        queryset = self.filter_queryset(self.get_queryset())
+
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+
+        def parse_date(value, is_end=False):
+            try:
+                parsed_date = datetime.strptime(value, '%Y-%m-%d').date()
+                combined = datetime.combine(
+                    parsed_date,
+                    time.max if is_end else time.min
+                )
+                return timezone.make_aware(combined, timezone.get_current_timezone())
+            except (ValueError, TypeError):
+                return None
+
+        start_dt = parse_date(date_from) if date_from else None
+        end_dt = parse_date(date_to, is_end=True) if date_to else None
+
+        if start_dt:
+            queryset = queryset.filter(created_at__gte=start_dt)
+        if end_dt:
+            queryset = queryset.filter(created_at__lte=end_dt)
+
+        queryset = queryset.order_by('-created_at')
+
+        total_amount = queryset.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+        total_count = queryset.count()
+        completed_count = queryset.filter(status=Sale.Status.COMPLETED).count()
+        pending_count = queryset.filter(status=Sale.Status.PENDING).count()
+        cancelled_count = queryset.filter(status=Sale.Status.CANCELLED).count()
+
+        max_rows = 200
+        sales = list(queryset[:max_rows])
+
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        elements = []
+        styles = getSampleStyleSheet()
+
+        title_style = ParagraphStyle(
+            'SalesReportTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#FF6600'),
+            alignment=TA_CENTER,
+            spaceAfter=20,
+        )
+
+        logo_path = get_logo_path()
+        logo = None
+        if logo_path:
+            try:
+                logo = Image(logo_path, width=1.0 * inch, height=1.0 * inch)
+            except Exception:
+                logo = None
+
+        title_paragraph = Paragraph("RotuPrinters", title_style)
+        if logo:
+            header = Table([[logo, title_paragraph]], colWidths=[1.2 * inch, 5.8 * inch])
+            header.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+            ]))
+            header.hAlign = 'CENTER'
+            elements.append(header)
+            elements.append(Spacer(1, 0.1 * inch))
+        else:
+            elements.append(title_paragraph)
+
+        elements.append(Paragraph("Ventas Filtradas", styles['Heading2']))
+        if date_from or date_to:
+            date_range_text = f"Rango: {date_from or 'inicio'} - {date_to or 'hoy'}"
+            elements.append(Paragraph(date_range_text, styles['Normal']))
+        elements.append(Spacer(1, 0.2 * inch))
+
+        summary_data = [
+            ['Monto Total:', f'L {total_amount:.2f}'],
+            ['Cantidad de Ventas:', str(total_count)],
+            ['Completadas:', str(completed_count)],
+            ['Pendientes:', str(pending_count)],
+            ['Canceladas:', str(cancelled_count)],
+        ]
+
+        summary_table = Table(summary_data, colWidths=[3 * inch, 2 * inch])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F5F5F5')),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.2 * inch))
+
+        if sales:
+            elements.append(Paragraph('Detalle de Ventas', styles['Heading3']))
+            elements.append(Spacer(1, 0.1 * inch))
+            table_data = [[
+                '# Factura', 'Cliente', 'Vendedor',
+                'Pago', 'Estado', 'Fecha', 'Total'
+            ]]
+            status_map = dict(Sale.Status.choices)
+            payment_map = dict(Sale.PaymentMethod.choices)
+            for sale in sales:
+                created_local = timezone.localtime(sale.created_at)
+                table_data.append([
+                    sale.invoice_number,
+                    sale.client.name[:25],
+                    (sale.created_by.get_full_name() or sale.created_by.username)[:20] if sale.created_by else 'N/D',
+                    payment_map.get(sale.payment_method, sale.payment_method),
+                    status_map.get(sale.status, sale.status),
+                    created_local.strftime('%d/%m/%Y'),
+                    f'L {sale.total_amount:.2f}',
+                ])
+
+            table = Table(table_data, colWidths=[1.0 * inch, 1.6 * inch, 1.6 * inch, 1.0 * inch, 1.1 * inch, 0.9 * inch, 1.0 * inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0055A4')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('ALIGN', (3, 1), (-1, -1), 'CENTER'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
+            ]))
+            elements.append(table)
+
+            if queryset.count() > max_rows:
+                elements.append(Spacer(1, 0.1 * inch))
+                elements.append(Paragraph(
+                    f"Mostrando las primeras {max_rows} ventas de {queryset.count()} registros filtrados.",
+                    styles['Normal']
+                ))
+        else:
+            elements.append(Paragraph('No hay ventas para los filtros seleccionados.', styles['Normal']))
+
+        doc.build(elements)
+        pdf = buffer.getvalue()
+        buffer.close()
+
+        response = HttpResponse(content_type='application/pdf')
+        filename = timezone.localtime().strftime('Ventas_Filtradas_%Y%m%d_%H%M.pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response.write(pdf)
+        return response
+
+    @action(detail=False, methods=['post'], url_path='delete_bulk')
+    def delete_bulk(self, request):
+        """Delete multiple sales permanently (admin only)."""
+        if not request.user.is_admin:
+            return Response(
+                {'detail': 'Solo los administradores pueden eliminar ventas.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        ids = request.data.get('ids', [])
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {'detail': 'Debe proporcionar una lista de IDs de ventas.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sales_qs = Sale.objects.filter(id__in=ids)
+        deleted_invoices = list(sales_qs.values_list('invoice_number', flat=True))
+        deleted_count = sales_qs.count()
+        sales_qs.delete()
+
+        return Response({
+            'deleted': deleted_count,
+            'invoice_numbers': deleted_invoices
+        }, status=status.HTTP_200_OK)
 
 
 class SaleItemViewSet(viewsets.ModelViewSet):
