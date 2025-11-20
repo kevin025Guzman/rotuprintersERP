@@ -23,12 +23,23 @@ def get_logo_path():
     candidates = [
         Path(settings.BASE_DIR) / 'logo.png',
         Path(settings.BASE_DIR) / 'static' / 'logo.png',
+        Path(settings.BASE_DIR) / 'staticfiles' / 'logo.png',
         Path(settings.BASE_DIR).parent / 'frontend' / 'public' / 'logo.png',
+        Path(settings.BASE_DIR) / 'frontend_dist' / 'logo.png',
     ]
     for path in candidates:
         if path.exists():
             return str(path)
     return None
+
+
+def safe_localtime(dt):
+    """Return timezone-aware datetime localized to current timezone."""
+    if not dt:
+        return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return timezone.localtime(dt)
 
 
 class DashboardStatsView(APIView):
@@ -68,21 +79,18 @@ class DashboardStatsView(APIView):
         
         # Today's sales (respecting local timezone date)
         today = timezone.localdate()
-        today_sales_qs = Sale.objects.filter(created_at__date=today)
-        today_sales = today_sales_qs.aggregate(
-            total=Sum('total_amount'),
-            count=Count('id')
-        )
-        
-        # Today's completed sales
         today_completed_qs = Sale.objects.filter(
             status=Sale.Status.COMPLETED,
             completed_at__date=today
         )
-        today_completed_sales = today_completed_qs.aggregate(
+        today_completed = today_completed_qs.aggregate(
             total=Sum('total_amount'),
             count=Count('id')
         )
+        today_pending_count = Sale.objects.filter(
+            status=Sale.Status.PENDING,
+            created_at__date=today
+        ).count()
         
         return Response({
             'sales': {
@@ -90,10 +98,11 @@ class DashboardStatsView(APIView):
                 'total_count': sales_count,
                 'pending_count': pending_sales,
                 'recent_30_days': float(recent_sales),
-                'today_amount': float(today_sales['total'] or Decimal('0')),
-                'today_count': today_sales['count'] or 0,
-                'today_completed_amount': float(today_completed_sales['total'] or Decimal('0')),
-                'today_completed_count': today_completed_sales['count'] or 0
+                'today_amount': float(today_completed['total'] or Decimal('0')),
+                'today_count': today_completed['count'] or 0,
+                'today_completed_amount': float(today_completed['total'] or Decimal('0')),
+                'today_completed_count': today_completed['count'] or 0,
+                'today_pending_count': today_pending_count
             },
             'quotations': {
                 'active': active_quotations,
@@ -370,9 +379,14 @@ class DailySalesPDFView(APIView):
         )
 
         logo_path = get_logo_path()
+        logo = None
         if logo_path:
-            logo = Image(logo_path, width=1.0 * inch, height=1.0 * inch)
-            title_paragraph = Paragraph("RotuPrinters", title_style)
+            try:
+                logo = Image(logo_path, width=1.0 * inch, height=1.0 * inch)
+            except Exception:
+                logo = None
+        title_paragraph = Paragraph("RotuPrinters", title_style)
+        if logo:
             from reportlab.platypus import Table
             header_table = Table([[logo, title_paragraph]], colWidths=[1.2 * inch, 5.8 * inch])
             header_table.setStyle(TableStyle([

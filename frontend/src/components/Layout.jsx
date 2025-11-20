@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useDarkMode } from '../hooks/useDarkMode'
+import logoImage from '../assets/logo.png'
 
 export default function Layout() {
   const { user, logout } = useAuthStore()
@@ -53,7 +54,7 @@ export default function Layout() {
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center gap-3">
               <img 
-                src="/logo.png" 
+                src={logoImage} 
                 alt="RotuPrinters Logo" 
                 className="w-10 h-10 rounded-full object-cover ring-2 ring-primary"
               />
