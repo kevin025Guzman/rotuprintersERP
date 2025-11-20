@@ -47,8 +47,10 @@ COPY --from=frontend-build /frontend/dist /app/frontend_dist
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python backend/manage.py migrate && \
-python backend/manage.py createsuperuser --noinput --username=admin --email=admin@example.com && \
-python backend/manage.py collectstatic --noinput && \
-gunicorn backend.wsgi:application --bind 0.0.0.0:$PORT"]
-
+CMD ["sh", "-c", "python manage.py migrate && \
+DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD:-ChangeMe123} \
+DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME:-admin} \
+DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL:-admin@example.com} \
+DJANGO_SUPERUSER_PASSWORD=$DJANGO_SUPERUSER_PASSWORD DJANGO_SUPERUSER_USERNAME=$DJANGO_SUPERUSER_USERNAME DJANGO_SUPERUSER_EMAIL=$DJANGO_SUPERUSER_EMAIL python manage.py createsuperuser --noinput --username=$DJANGO_SUPERUSER_USERNAME --email=$DJANGO_SUPERUSER_EMAIL || true && \
+python manage.py collectstatic --noinput && \
+gunicorn rotuprinters.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
