@@ -47,8 +47,8 @@ COPY --from=frontend-build /frontend/dist /app/frontend_dist
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python backend/manage.py migrate && \
-python backend/create_initial_user.py && \
-python backend/manage.py collectstatic --noinput && \
+CMD ["sh", "-c", "python manage.py migrate && \
+python create_initial_user.py && \
+python manage.py collectstatic --noinput && \
 gunicorn rotuprinters.wsgi:application --bind 0.0.0.0:${PORT:-8000}"]
 
