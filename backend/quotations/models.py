@@ -78,6 +78,10 @@ class Quotation(models.Model):
     )
     notes = models.TextField(blank=True, verbose_name='Notas')
     valid_until = models.DateField(null=True, blank=True, verbose_name='Válida Hasta')
+    include_client_details = models.BooleanField(default=False, verbose_name='Incluir datos de cliente')
+    client_rtn = models.CharField(max_length=25, blank=True, verbose_name='RTN Cliente')
+    client_phone = models.CharField(max_length=25, blank=True, verbose_name='Teléfono Cliente')
+    client_address = models.TextField(blank=True, verbose_name='Dirección Cliente')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

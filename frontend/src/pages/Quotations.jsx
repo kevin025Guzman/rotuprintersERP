@@ -26,7 +26,7 @@ export default function Quotations() {
     }
   }
 
-  const handleDownloadPDF = async (id, fileName) => {
+    const handleDownloadPDF = async (id, fileName) => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
       const url = `${baseUrl}/quotations/${id}/generate_pdf/`
@@ -273,6 +273,10 @@ function QuotationModal({ onClose }) {
     client: '',
     notes: '',
     apply_tax: false,
+    include_client_details: false,
+    client_rtn: '',
+    client_phone: '',
+    client_address: '',
     items: []
   })
   const [saving, setSaving] = useState(false)
@@ -363,7 +367,7 @@ function QuotationModal({ onClose }) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Cliente *</label>
-                <select value={formData.client} onChange={(e) => setFormData({...formData, client: e.target.value})} className="input-field" required>
+                <select value={formData.client} onChange={(e) => handleClientChange(e.target.value)} className="input-field" required>
                   <option value="">Seleccionar cliente...</option>
                   {clients.map(client => (
                     <option key={client.id} value={client.id}>{client.name}</option>
@@ -423,6 +427,64 @@ function QuotationModal({ onClose }) {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="border rounded-lg p-4">
+              <label className="inline-flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  checked={formData.include_client_details}
+                  onChange={(e) => handleIncludeDetailsToggle(e.target.checked)}
+                />
+                Incluir datos de contacto del cliente en la cotización
+              </label>
+              <p className="text-xs text-gray-500 mt-1">Se mostrará RTN, teléfono y dirección en el PDF.</p>
+
+              {formData.include_client_details && (
+                <div className="mt-4 space-y-3">
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleAutofillClientDetails}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Copiar datos del cliente
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium mb-1">RTN</label>
+                      <input
+                        type="text"
+                        value={formData.client_rtn}
+                        onChange={(e) => setFormData({ ...formData, client_rtn: e.target.value })}
+                        className="input-field text-sm"
+                        placeholder="0000-0000-000000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1">Teléfono</label>
+                      <input
+                        type="text"
+                        value={formData.client_phone}
+                        onChange={(e) => setFormData({ ...formData, client_phone: e.target.value })}
+                        className="input-field text-sm"
+                        placeholder="+504 ..."
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="block text-xs font-medium mb-1">Dirección</label>
+                      <textarea
+                        value={formData.client_address}
+                        onChange={(e) => setFormData({ ...formData, client_address: e.target.value })}
+                        className="input-field text-sm"
+                        rows={2}
+                        placeholder="Dirección del cliente"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t pt-4">

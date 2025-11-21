@@ -155,6 +155,13 @@ class QuotationViewSet(viewsets.ModelViewSet):
             ['Estado:', quotation.get_status_display()],
             ['Creada:', created_at.strftime('%d/%m/%Y %H:%M')],
         ]
+        if quotation.include_client_details:
+            if quotation.client_rtn:
+                info_data.append(['RTN Cliente:', quotation.client_rtn])
+            if quotation.client_phone:
+                info_data.append(['Teléfono Cliente:', quotation.client_phone])
+            if quotation.client_address:
+                info_data.append(['Dirección Cliente:', quotation.client_address])
         if quotation.valid_until:
             info_data.append(['Válida hasta:', quotation.valid_until.strftime('%d/%m/%Y')])
         if quotation.notes:
@@ -195,8 +202,6 @@ class QuotationViewSet(viewsets.ModelViewSet):
             ('FONTSIZE', (0, 0), (-1, -1), 11),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
-        elements.append(summary_table)
-        elements.append(Spacer(1, 0.2 * inch))
 
         items = quotation.items.all()
         if items:
@@ -224,6 +229,28 @@ class QuotationViewSet(viewsets.ModelViewSet):
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F5F5F5')]),
             ]))
             elements.append(table)
+            elements.append(Spacer(1, 0.2 * inch))
+        else:
+            elements.append(Spacer(1, 0.1 * inch))
+
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.4 * inch))
+
+        signature_table = Table([[" "]], colWidths=[4 * inch])
+        signature_table.setStyle(TableStyle([
+            ('LINEABOVE', (0, 0), (-1, -1), 1, colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ]))
+        signature_table.hAlign = 'CENTER'
+        elements.append(signature_table)
+
+        signature_label_style = ParagraphStyle(
+            'SignatureLabel',
+            parent=styles['Normal'],
+            alignment=TA_CENTER,
+            spaceBefore=4
+        )
+        elements.append(Paragraph('Firma', signature_label_style))
 
         doc.build(
             elements,

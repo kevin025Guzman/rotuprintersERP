@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { simpleInventoryService } from '../services/simpleInventoryService';
+import logoImage from '../assets/logo.png';
 
 export default function SimpleInventory() {
   const [products, setProducts] = useState([]);
@@ -26,7 +27,7 @@ export default function SimpleInventory() {
     new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.src = '/logo.png';
+      img.src = logoImage;
       img.onload = () => resolve(img);
       img.onerror = reject;
     })
@@ -85,22 +86,58 @@ export default function SimpleInventory() {
 
   const handleExportPdf = async () => {
     const doc = new jsPDF();
+    const brandColor = [255, 102, 0];
+    const barHeight = 14;
+    const footerLines = [
+      '☎ +504 9703-2263   |   +504 9449-1387     ✉ rotu_print3@yahoo.es',
+      '📍 Siguatepeque, Barrio El Centro, Frente a Transportes ETUL'
+    ];
+
+    const applyBranding = () => {
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      doc.setFillColor(...brandColor);
+      doc.rect(0, 0, pageWidth, barHeight, 'F');
+      doc.rect(0, pageHeight - barHeight, pageWidth, barHeight, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('RotuPrinters', pageWidth / 2, barHeight / 2 + 4, { align: 'center' });
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(9);
+      const totalFooterHeight = (footerLines.length - 1) * 5;
+      const footerStartY = pageHeight - barHeight - 4 - totalFooterHeight;
+      footerLines.forEach((line, index) => {
+        doc.text(line, pageWidth / 2, footerStartY + index * 5, { align: 'center' });
+      });
+
+      doc.setTextColor(33, 33, 33);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+    };
+
+    applyBranding();
 
     try {
       const logo = await loadLogoImage();
-      doc.addImage(logo, 'PNG', 14, 10, 18, 18);
+      const logoY = barHeight + 6;
+      doc.addImage(logo, 'PNG', 14, logoY, 18, 18);
     } catch (error) {
       // Si falla la carga del logo, continuamos sin él
     }
 
+    const headerTextY = barHeight + 18;
     doc.setFontSize(20);
-    doc.text('RotuPrinters', 36, 18);
+    doc.text('RotuPrinters', 36, headerTextY);
     doc.setFontSize(14);
-    doc.text('Inventario Manual', 36, 26);
+    doc.text('Inventario Manual', 36, headerTextY + 8);
     doc.setFontSize(10);
-    doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 34);
+    doc.text(`Generado: ${new Date().toLocaleString()}`, 14, headerTextY + 18);
 
-    const tableTop = 40;
+    const tableTop = headerTextY + 28;
     const rowHeight = 8;
     let currentY = tableTop;
 
@@ -117,9 +154,11 @@ export default function SimpleInventory() {
     currentY += 6;
 
     sortedProducts.forEach((product) => {
-      if (currentY > 280) {
+      const pageHeight = doc.internal.pageSize.getHeight();
+      if (currentY > pageHeight - (barHeight + 20)) {
         doc.addPage();
-        currentY = 20;
+        applyBranding();
+        currentY = tableTop;
       }
       const descText = doc.splitTextToSize(product.description || 'Sin descripción', 90);
       doc.text(product.name, 14, currentY);
