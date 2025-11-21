@@ -14,6 +14,7 @@ from .serializers import (
     QuotationSerializer, QuotationListSerializer, QuotationItemSerializer
 )
 from users.permissions import IsAdminOrSeller
+from utils.pdf import add_branding_to_canvas
 
 
 def get_logo_path():
@@ -224,7 +225,11 @@ class QuotationViewSet(viewsets.ModelViewSet):
             ]))
             elements.append(table)
 
-        doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=add_branding_to_canvas,
+            onLaterPages=add_branding_to_canvas
+        )
         pdf = buffer.getvalue()
         buffer.close()
 

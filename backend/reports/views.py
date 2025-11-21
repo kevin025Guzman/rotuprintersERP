@@ -15,6 +15,7 @@ from quotations.models import Quotation
 from inventory.models import Product
 from clients.models import Client
 from users.permissions import IsAdmin
+from utils.pdf import add_branding_to_canvas
 from simple_inventory.models import SimpleProduct
 
 
@@ -462,7 +463,11 @@ class DailySalesPDFView(APIView):
             elements.append(Paragraph("No hay ventas registradas hoy.", styles['Normal']))
         
         # Build PDF
-        doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=add_branding_to_canvas,
+            onLaterPages=add_branding_to_canvas
+        )
         
         # Get PDF from buffer
         pdf = buffer.getvalue()
@@ -595,7 +600,11 @@ class TotalSalesPDFView(APIView):
             elements.append(Paragraph("No hay ventas registradas.", styles['Normal']))
         
         # Build PDF
-        doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=add_branding_to_canvas,
+            onLaterPages=add_branding_to_canvas
+        )
         
         # Get PDF from buffer
         pdf = buffer.getvalue()

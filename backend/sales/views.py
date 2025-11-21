@@ -19,6 +19,7 @@ from .serializers import (
 )
 from quotations.models import Quotation
 from users.permissions import IsAdminOrSeller
+from utils.pdf import add_branding_to_canvas
 
 
 def get_logo_path():
@@ -222,7 +223,11 @@ class SaleViewSet(viewsets.ModelViewSet):
         elements.append(totals_table)
         
         # Build PDF
-        doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=add_branding_to_canvas,
+            onLaterPages=add_branding_to_canvas
+        )
         
         # Get PDF from buffer
         pdf = buffer.getvalue()
@@ -385,7 +390,11 @@ class SaleViewSet(viewsets.ModelViewSet):
         else:
             elements.append(Paragraph('No hay ventas para los filtros seleccionados.', styles['Normal']))
 
-        doc.build(elements)
+        doc.build(
+            elements,
+            onFirstPage=add_branding_to_canvas,
+            onLaterPages=add_branding_to_canvas
+        )
         pdf = buffer.getvalue()
         buffer.close()
 
