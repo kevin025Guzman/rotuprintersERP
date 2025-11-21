@@ -298,6 +298,52 @@ function QuotationModal({ onClose }) {
     }
   }
 
+  const findClientById = (clientId) => {
+    if (!clientId) return null
+    return clients.find((client) => String(client.id) === String(clientId)) || null
+  }
+
+  const handleClientChange = (clientId) => {
+    setFormData((prev) => ({
+      ...prev,
+      client: clientId
+    }))
+  }
+
+  const handleIncludeDetailsToggle = (checked) => {
+    setFormData((prev) => ({
+      ...prev,
+      include_client_details: checked,
+      ...(checked
+        ? {}
+        : {
+            client_rtn: '',
+            client_phone: '',
+            client_address: ''
+          })
+    }))
+  }
+
+  const handleAutofillClientDetails = () => {
+    if (!formData.client) {
+      alert('Seleccione un cliente primero para copiar sus datos.')
+      return
+    }
+
+    const client = findClientById(formData.client)
+    if (!client) {
+      alert('No se encontró el cliente seleccionado.')
+      return
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      client_rtn: client.rtn || '',
+      client_phone: client.phone || client.contact_phone || '',
+      client_address: client.address || client.company_address || ''
+    }))
+  }
+
   const addItem = () => {
     setFormData({
       ...formData,
