@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { quotationService } from '../services/quotationService'
 import { clientService } from '../services/clientService'
 import { productService } from '../services/productService'
-import { Plus, Eye, CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { Plus, Eye, CheckCircle, XCircle, Trash2, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
 
 export default function Quotations() {
@@ -24,99 +24,36 @@ export default function Quotations() {
     } finally {
       setLoading(false)
     }
+  }
 
-function QuotationDetailModal({ quotation, onClose }) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">Cotización {quotation.quotation_number}</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-              <XCircle className="w-6 h-6" />
-            </button>
-          </div>
+  const handleDownloadPDF = async (id, fileName) => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
+      const url = `${baseUrl}/quotations/${id}/generate_pdf/`
+      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+      const token = authStorage?.state?.token
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
 
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Información General</h3>
-              <div className="space-y-2 text-sm">
-                <div><span className="font-medium">Cliente:</span> {quotation.client_name}</div>
-                <div><span className="font-medium">Vendedor:</span> {quotation.created_by_username || 'N/D'}</div>
-                <div><span className="font-medium">Estado:</span> {
-                  quotation.status === 'PENDING' ? 'Pendiente' :
-                  quotation.status === 'APPROVED' ? 'Aprobada' :
-                  quotation.status === 'CONVERTED' ? 'Convertida' : 'Rechazada'
-                }</div>
-                <div><span className="font-medium">Creada:</span> {format(new Date(quotation.created_at), 'dd/MM/yyyy HH:mm')}</div>
-                {quotation.valid_until && (
-                  <div><span className="font-medium">Válida hasta:</span> {format(new Date(quotation.valid_until), 'dd/MM/yyyy')}</div>
-                )}
-                {quotation.notes && (
-                  <div><span className="font-medium">Notas:</span> {quotation.notes}</div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Resumen Financiero</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>L {parseFloat(quotation.subtotal || 0).toFixed(2)}</span>
-                </div>
-                {quotation.discount_amount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Descuento ({quotation.discount_percentage}%):</span>
-                    <span>- L {parseFloat(quotation.discount_amount).toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-xl font-bold border-t pt-2">
-                  <span>Total:</span>
-                  <span>L {parseFloat(quotation.total_amount || 0).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {quotation.items && quotation.items.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-3">Items</h3>
-              <div className="table-container">
-                <table className="table">
-                  <thead className="table-header">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Producto</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Descripción</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Cantidad</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Precio/pulg²</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {quotation.items.map((item) => (
-                      <tr key={item.id}>
-                        <td className="px-4 py-2 text-sm">{item.product_name}</td>
-                        <td className="px-4 py-2 text-sm">{item.description}</td>
-                        <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
-                        <td className="px-4 py-2 text-sm text-right">L {parseFloat(item.price_per_square_inch).toFixed(2)}</td>
-                        <td className="px-4 py-2 text-sm text-right font-semibold">L {parseFloat(item.total).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end mt-6">
-            <button onClick={onClose} className="btn-primary">Cerrar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+      if (!response.ok) {
+        throw new Error('Error al generar PDF')
+      }
+      const blob = await response.blob()
+      const downloadUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = fileName || `Cotizacion_${id}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(downloadUrl)
+    } catch (error) {
+      alert('Error al descargar PDF: ' + error.message)
+    }
   }
 
   const handleApprove = async (id) => {
@@ -195,6 +132,9 @@ function QuotationDetailModal({ quotation, onClose }) {
                 <td className="px-6 py-4 text-sm">{format(new Date(quotation.created_at), 'dd/MM/yyyy')}</td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => handleView(quotation.id)} className="text-blue-600 hover:text-blue-900 mr-2"><Eye className="w-5 h-5" /></button>
+                  <button onClick={() => handleDownloadPDF(quotation.id)} className="text-purple-600 hover:text-purple-900 mr-2" title="Descargar PDF">
+                    <FileDown className="w-5 h-5" />
+                  </button>
                   {quotation.status === 'PENDING' && (
                     <>
                       <button onClick={() => handleApprove(quotation.id)} className="text-green-600 hover:text-green-900 mr-2"><CheckCircle className="w-5 h-5" /></button>
@@ -213,8 +153,115 @@ function QuotationDetailModal({ quotation, onClose }) {
         <QuotationDetailModal
           quotation={viewingQuotation}
           onClose={() => setViewingQuotation(null)}
+          onDownload={() => handleDownloadPDF(viewingQuotation.id, `Cotizacion_${viewingQuotation.quotation_number || viewingQuotation.id}.pdf`)}
         />
       )}
+    </div>
+  )
+}
+
+function QuotationDetailModal({ quotation, onClose, onDownload }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold">Cotización {quotation.quotation_number}</h2>
+              <p className="text-sm text-gray-500">#{quotation.id}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onDownload}
+                className="btn-outline flex items-center gap-2"
+              >
+                <FileDown className="w-4 h-4" />
+                PDF
+              </button>
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Información General</h3>
+              <div className="space-y-2 text-sm">
+                <div><span className="font-medium">Cliente:</span> {quotation.client_name}</div>
+                <div><span className="font-medium">Vendedor:</span> {quotation.created_by_username || 'N/D'}</div>
+                <div>
+                  <span className="font-medium">Estado:</span>{' '}
+                  {quotation.status === 'PENDING' ? 'Pendiente' :
+                    quotation.status === 'APPROVED' ? 'Aprobada' :
+                    quotation.status === 'CONVERTED' ? 'Convertida' : 'Rechazada'}
+                </div>
+                <div><span className="font-medium">Creada:</span> {format(new Date(quotation.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                {quotation.valid_until && (
+                  <div><span className="font-medium">Válida hasta:</span> {format(new Date(quotation.valid_until), 'dd/MM/yyyy')}</div>
+                )}
+                {quotation.notes && (
+                  <div><span className="font-medium">Notas:</span> {quotation.notes}</div>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Resumen Financiero</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span>L {parseFloat(quotation.subtotal || 0).toFixed(2)}</span>
+                </div>
+                {quotation.discount_amount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Descuento ({quotation.discount_percentage}%):</span>
+                    <span>- L {parseFloat(quotation.discount_amount).toFixed(2)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xl font-bold border-t pt-2">
+                  <span>Total:</span>
+                  <span>L {parseFloat(quotation.total_amount || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {quotation.items && quotation.items.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Items</h3>
+              <div className="table-container">
+                <table className="table">
+                  <thead className="table-header">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Producto</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium uppercase">Descripción</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Cantidad</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Precio/pulg²</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium uppercase">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {quotation.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-4 py-2 text-sm">{item.product_name}</td>
+                        <td className="px-4 py-2 text-sm">{item.description}</td>
+                        <td className="px-4 py-2 text-sm text-right">{item.quantity}</td>
+                        <td className="px-4 py-2 text-sm text-right">L {parseFloat(item.price_per_square_inch).toFixed(2)}</td>
+                        <td className="px-4 py-2 text-sm text-right font-semibold">L {parseFloat(item.total).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end mt-6">
+            <button onClick={onClose} className="btn-primary">Cerrar</button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

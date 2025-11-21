@@ -120,10 +120,17 @@ export default function Layout() {
           <div className="flex items-center">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden mr-4"
+              className="lg:hidden mr-3 flex items-center"
             >
               <Menu className="w-6 h-6" />
             </button>
+            <div className="lg:hidden mr-3">
+              <img
+                src={logoImage}
+                alt="RotuPrinters"
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-primary"
+              />
+            </div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Sistema de Gestión
             </h2>
