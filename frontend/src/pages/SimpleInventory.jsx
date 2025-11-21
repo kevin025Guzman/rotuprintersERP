@@ -88,10 +88,6 @@ export default function SimpleInventory() {
     const doc = new jsPDF();
     const brandColor = [255, 102, 0];
     const barHeight = 14;
-    const footerLines = [
-      '☎ +504 9703-2263   |   +504 9449-1387     ✉ rotu_print3@yahoo.es',
-      '📍 Siguatepeque, Barrio El Centro, Frente a Transportes ETUL'
-    ];
 
     const applyBranding = () => {
       const pageWidth = doc.internal.pageSize.getWidth();
@@ -105,14 +101,6 @@ export default function SimpleInventory() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(11);
       doc.text('RotuPrinters', pageWidth / 2, barHeight / 2 + 4, { align: 'center' });
-
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(9);
-      const totalFooterHeight = (footerLines.length - 1) * 5;
-      const footerStartY = pageHeight - barHeight - 4 - totalFooterHeight;
-      footerLines.forEach((line, index) => {
-        doc.text(line, pageWidth / 2, footerStartY + index * 5, { align: 'center' });
-      });
 
       doc.setTextColor(33, 33, 33);
       doc.setFont('helvetica', 'normal');

@@ -40,6 +40,17 @@ export default function Clients() {
     }
   }
 
+  const handleEdit = async (client) => {
+    try {
+      const response = await clientService.getById(client.id)
+      setEditingClient(response.data || response)
+      setShowModal(true)
+    } catch (error) {
+      console.error('Error fetching client details:', error)
+      alert('Error al cargar información del cliente')
+    }
+  }
+
   if (loading) {
     return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
   }
@@ -94,7 +105,7 @@ export default function Clients() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button onClick={() => { setEditingClient(client); setShowModal(true) }} className="text-blue-600 hover:text-blue-900 mr-3">
+                  <button onClick={() => handleEdit(client)} className="text-blue-600 hover:text-blue-900 mr-3">
                     <Edit className="w-5 h-5" />
                   </button>
                   <button onClick={() => handleDelete(client.id)} className="text-red-600 hover:text-red-900">
@@ -113,10 +124,15 @@ export default function Clients() {
 }
 
 function ClientModal({ client, onClose }) {
-  const [formData, setFormData] = useState(client || {
+  const defaultForm = {
     name: '', company: '', phone: '', email: '', address: '', rtn: '', notes: '', is_active: true
-  })
+  }
+  const [formData, setFormData] = useState(client ? { ...defaultForm, ...client } : defaultForm)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setFormData(client ? { ...defaultForm, ...client } : defaultForm)
+  }, [client])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -164,7 +180,7 @@ function ClientModal({ client, onClose }) {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Estado</label>
-                <select value={formData.is_active} onChange={(e) => setFormData({...formData, is_active: e.target.value === 'true'})} className="input-field">
+                <select value={formData.is_active ? 'true' : 'false'} onChange={(e) => setFormData({...formData, is_active: e.target.value === 'true'})} className="input-field">
                   <option value="true">Activo</option>
                   <option value="false">Inactivo</option>
                 </select>

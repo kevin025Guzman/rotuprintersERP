@@ -46,6 +46,17 @@ export default function Products() {
     }
   }
 
+  const handleEdit = async (product) => {
+    try {
+      const response = await productService.getById(product.id)
+      setEditingProduct(response.data || response)
+      setShowModal(true)
+    } catch (error) {
+      console.error('Error fetching product details:', error)
+      alert('Error al cargar información del producto')
+    }
+  }
+
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
 
   return (
@@ -105,7 +116,7 @@ export default function Products() {
                   </td>
                   <td className="px-6 py-4 text-sm">L {product.price_per_square_inch}</td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => { setEditingProduct(product); setShowModal(true) }} className="text-blue-600 hover:text-blue-900 mr-3"><Edit className="w-5 h-5" /></button>
+                    <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-900 mr-3"><Edit className="w-5 h-5" /></button>
                     <button onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-900"><Trash2 className="w-5 h-5" /></button>
                   </td>
                 </tr>
@@ -146,6 +157,10 @@ function ProductModal({ product, categories = [], inventory = [], onClose }) {
   // Asegurar que categories sea un array
   const categoryList = Array.isArray(categories) ? categories : []
   const inventoryOptions = Array.isArray(inventory) ? inventory : []
+
+  useEffect(() => {
+    setFormData(product ? { ...defaultFormState, ...product } : defaultFormState)
+  }, [product])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
