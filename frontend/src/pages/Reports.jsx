@@ -33,10 +33,19 @@ export default function Reports() {
 
   const openPdfFromResponse = async (response) => {
     if (!response.ok) throw new Error('Error al generar PDF')
-    const data = await response.json()
-    const pdfUrl = data.pdf_url || data.url
-    if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
-    window.open(pdfUrl, '_self')
+    const contentType = response.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      const data = await response.json()
+      const pdfUrl = data.pdf_url || data.url
+      if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
+      window.open(pdfUrl, '_self')
+      return
+    }
+
+    const blob = await response.blob()
+    const downloadUrl = window.URL.createObjectURL(blob)
+    window.open(downloadUrl, '_self')
+    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 10000)
   }
 
   const handleDownloadDailySalesPDF = async () => {
