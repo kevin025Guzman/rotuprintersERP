@@ -189,34 +189,25 @@ export default function Sales() {
     }
   }
 
+  const openPdfFromResponse = async (response) => {
+    if (!response.ok) throw new Error('Error al generar PDF')
+    const data = await response.json()
+    const pdfUrl = data.pdf_url || data.url
+    if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
+    window.open(pdfUrl, '_self')
+  }
+
   const handleDownloadPDF = async (id) => {
     try {
-      // Crear un enlace temporal para descargar el PDF
-      const sale = allSales.find(s => s.id === id)
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/sales/${id}/generate_pdf/`
-      
-      // Obtener el token de autenticación
       const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
       const token = authStorage?.state?.token
-      
-      // Hacer la petición con fetch para obtener el blob
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      
-      if (!response.ok) throw new Error('Error al generar PDF')
-      
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = `Factura_${sale?.invoice_number || id}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      await openPdfFromResponse(response)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
@@ -243,17 +234,7 @@ export default function Sales() {
         }
       })
 
-      if (!response.ok) throw new Error('Error al generar PDF')
-
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = 'Ventas_Filtradas.pdf'
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      await openPdfFromResponse(response)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al descargar PDF: ' + error.message })
     }

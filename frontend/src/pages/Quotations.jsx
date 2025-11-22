@@ -28,7 +28,15 @@ export default function Quotations() {
     }
   }
 
-    const handleDownloadPDF = async (id, fileName) => {
+    const openPdfFromResponse = async (response) => {
+    if (!response.ok) throw new Error('Error al generar PDF')
+    const data = await response.json()
+    const pdfUrl = data.pdf_url || data.url
+    if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
+    window.open(pdfUrl, '_self')
+  }
+
+  const handleDownloadPDF = async (id) => {
     try {
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
       const url = `${baseUrl}/quotations/${id}/generate_pdf/`
@@ -41,18 +49,7 @@ export default function Quotations() {
         }
       })
 
-      if (!response.ok) {
-        throw new Error('Error al generar PDF')
-      }
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = fileName || `Cotizacion_${id}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      await openPdfFromResponse(response)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al descargar PDF: ' + error.message })
     }

@@ -31,33 +31,25 @@ export default function Reports() {
     }
   }
 
+  const openPdfFromResponse = async (response) => {
+    if (!response.ok) throw new Error('Error al generar PDF')
+    const data = await response.json()
+    const pdfUrl = data.pdf_url || data.url
+    if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
+    window.open(pdfUrl, '_self')
+  }
+
   const handleDownloadDailySalesPDF = async () => {
     try {
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/reports/daily-sales-pdf/`
-      
-      // Obtener el token de autenticación
       const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
       const token = authStorage?.state?.token
-      
-      // Hacer la petición con fetch para obtener el blob
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      
-      if (!response.ok) throw new Error('Error al generar PDF')
-      
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      link.download = `Ventas_Dia_${today}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      await openPdfFromResponse(response)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
@@ -66,30 +58,14 @@ export default function Reports() {
   const handleDownloadTotalSalesPDF = async () => {
     try {
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/reports/total-sales-pdf/`
-      
-      // Obtener el token de autenticación
       const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
       const token = authStorage?.state?.token
-      
-      // Hacer la petición con fetch para obtener el blob
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       })
-      
-      if (!response.ok) throw new Error('Error al generar PDF')
-      
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
-      link.download = `Ventas_Totales_${today}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(downloadUrl)
+      await openPdfFromResponse(response)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
