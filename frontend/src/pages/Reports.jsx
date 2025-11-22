@@ -31,34 +31,21 @@ export default function Reports() {
     }
   }
 
-  const openPdfFromResponse = async (response) => {
-    if (!response.ok) throw new Error('Error al generar PDF')
-    const contentType = response.headers.get('content-type') || ''
-    if (contentType.includes('application/json')) {
-      const data = await response.json()
-      const pdfUrl = data.pdf_url || data.url
-      if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
-      window.open(pdfUrl, '_self')
+  const openPdfWithToken = (url) => {
+    const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+    const token = authStorage?.state?.token
+    if (!token) {
+      alertDialog({ title: 'Error', message: 'No se encontró el token de autenticación.' })
       return
     }
-
-    const blob = await response.blob()
-    const downloadUrl = window.URL.createObjectURL(blob)
-    window.open(downloadUrl, '_self')
-    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 10000)
+    const separator = url.includes('?') ? '&' : '?'
+    window.open(`${url}${separator}token=${token}`, '_self')
   }
 
   const handleDownloadDailySalesPDF = async () => {
     try {
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/reports/daily-sales-pdf/`
-      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
-      const token = authStorage?.state?.token
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      await openPdfFromResponse(response)
+      openPdfWithToken(url)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
@@ -67,14 +54,7 @@ export default function Reports() {
   const handleDownloadTotalSalesPDF = async () => {
     try {
       const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/reports/total-sales-pdf/`
-      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
-      const token = authStorage?.state?.token
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      await openPdfFromResponse(response)
+      openPdfWithToken(url)
     } catch (error) {
       await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }

@@ -189,64 +189,32 @@ export default function Sales() {
     }
   }
 
-  const openPdfFromResponse = async (response) => {
-    if (!response.ok) throw new Error('Error al generar PDF')
-    const contentType = response.headers.get('content-type') || ''
-    if (contentType.includes('application/json')) {
-      const data = await response.json()
-      const pdfUrl = data.pdf_url || data.url
-      if (!pdfUrl) throw new Error('La respuesta no contiene la URL del PDF')
-      window.open(pdfUrl, '_self')
+  const openPdfWithToken = (url) => {
+    const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
+    const token = authStorage?.state?.token
+    if (!token) {
+      alertDialog({ title: 'Error', message: 'No se encontró el token de autenticación.' })
       return
     }
-
-    const blob = await response.blob()
-    const downloadUrl = window.URL.createObjectURL(blob)
-    window.open(downloadUrl, '_self')
-    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 10000)
+    const separator = url.includes('?') ? '&' : '?'
+    window.open(`${url}${separator}token=${token}`, '_self')
   }
 
-  const handleDownloadPDF = async (id) => {
-    try {
-      const url = `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/sales/${id}/generate_pdf/`
-      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
-      const token = authStorage?.state?.token
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      await openPdfFromResponse(response)
-    } catch (error) {
-      await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
-    }
+  const handleDownloadPDF = (id) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
+    openPdfWithToken(`${baseUrl}/sales/${id}/generate_pdf/`)
   }
 
-  const handleDownloadFilteredPDF = async () => {
-    try {
-      const params = new URLSearchParams()
-      if (appliedFilters.status) params.append('status', appliedFilters.status)
-      if (appliedFilters.payment_method) params.append('payment_method', appliedFilters.payment_method)
-      if (appliedFilters.search) params.append('search', appliedFilters.search)
-      if (appliedFilters.date_from) params.append('date_from', appliedFilters.date_from)
-      if (appliedFilters.date_to) params.append('date_to', appliedFilters.date_to)
+  const handleDownloadFilteredPDF = () => {
+    const params = new URLSearchParams()
+    if (appliedFilters.status) params.append('status', appliedFilters.status)
+    if (appliedFilters.payment_method) params.append('payment_method', appliedFilters.payment_method)
+    if (appliedFilters.search) params.append('search', appliedFilters.search)
+    if (appliedFilters.date_from) params.append('date_from', appliedFilters.date_from)
+    if (appliedFilters.date_to) params.append('date_to', appliedFilters.date_to)
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
-      const url = `${baseUrl}/sales/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`
-
-      const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}')
-      const token = authStorage?.state?.token
-
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      await openPdfFromResponse(response)
-    } catch (error) {
-      await alertDialog({ title: 'Error', message: 'Error al descargar PDF: ' + error.message })
-    }
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
+    openPdfWithToken(`${baseUrl}/sales/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
   if (loading) return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>
