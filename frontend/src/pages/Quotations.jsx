@@ -4,12 +4,14 @@ import { clientService } from '../services/clientService'
 import { productService } from '../services/productService'
 import { Plus, Eye, CheckCircle, XCircle, Trash2, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
+import { useDialog } from '../context/DialogContext'
 
 export default function Quotations() {
   const [quotations, setQuotations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [viewingQuotation, setViewingQuotation] = useState(null)
+  const { alertDialog, confirmDialog } = useDialog()
 
   useEffect(() => {
     loadQuotations()
@@ -52,7 +54,7 @@ export default function Quotations() {
       link.remove()
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      alert('Error al descargar PDF: ' + error.message)
+      await alertDialog({ title: 'Error', message: 'Error al descargar PDF: ' + error.message })
     }
   }
 
@@ -61,18 +63,21 @@ export default function Quotations() {
       await quotationService.approve(id)
       loadQuotations()
     } catch (error) {
-      alert('Error al aprobar cotización')
+      await alertDialog({ title: 'Error', message: 'Error al aprobar cotización' })
     }
   }
 
   const handleReject = async (id) => {
-    if (window.confirm('¿Rechazar esta cotización?')) {
-      try {
-        await quotationService.reject(id)
-        loadQuotations()
-      } catch (error) {
-        alert('Error al rechazar cotización')
-      }
+    const confirmed = await confirmDialog({
+      title: 'Rechazar cotización',
+      message: '¿Rechazar esta cotización?'
+    })
+    if (!confirmed) return
+    try {
+      await quotationService.reject(id)
+      loadQuotations()
+    } catch (error) {
+      await alertDialog({ title: 'Error', message: 'Error al rechazar cotización' })
     }
   }
 
@@ -81,7 +86,7 @@ export default function Quotations() {
       const response = await quotationService.getById(id)
       setViewingQuotation(response.data)
     } catch (error) {
-      alert('Error al cargar la cotización')
+      await alertDialog({ title: 'Error', message: 'Error al cargar la cotización' })
     }
   }
 
@@ -280,6 +285,7 @@ function QuotationModal({ onClose }) {
     items: []
   })
   const [saving, setSaving] = useState(false)
+  const { alertDialog } = useDialog()
 
   useEffect(() => {
     loadData()
@@ -326,13 +332,13 @@ function QuotationModal({ onClose }) {
 
   const handleAutofillClientDetails = () => {
     if (!formData.client) {
-      alert('Seleccione un cliente primero para copiar sus datos.')
+      alertDialog({ title: 'Aviso', message: 'Seleccione un cliente primero para copiar sus datos.' })
       return
     }
 
     const client = findClientById(formData.client)
     if (!client) {
-      alert('No se encontró el cliente seleccionado.')
+      alertDialog({ title: 'Aviso', message: 'No se encontró el cliente seleccionado.' })
       return
     }
 
@@ -384,7 +390,7 @@ function QuotationModal({ onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (formData.items.length === 0) {
-      alert('Debe agregar al menos un item')
+      await alertDialog({ title: 'Aviso', message: 'Debe agregar al menos un item.' })
       return
     }
     setSaving(true)
@@ -398,7 +404,10 @@ function QuotationModal({ onClose }) {
       })
       onClose()
     } catch (error) {
-      alert('Error al crear cotización: ' + (error.response?.data?.detail || error.message))
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al crear cotización: ' + (error.response?.data?.detail || error.message)
+      })
     } finally {
       setSaving(false)
     }

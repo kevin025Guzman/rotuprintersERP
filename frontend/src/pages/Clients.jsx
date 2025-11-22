@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { clientService } from '../services/clientService'
 import { Plus, Edit, Trash2, Search } from 'lucide-react'
+import { useDialog } from '../context/DialogContext'
 
 export default function Clients() {
   const [clients, setClients] = useState([])
@@ -8,6 +9,7 @@ export default function Clients() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
+  const { alertDialog, confirmDialog } = useDialog()
 
   useEffect(() => {
     loadClients()
@@ -30,13 +32,16 @@ export default function Clients() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este cliente?')) {
-      try {
-        await clientService.delete(id)
-        loadClients()
-      } catch (error) {
-        alert('Error al eliminar cliente')
-      }
+    const confirmed = await confirmDialog({
+      title: 'Eliminar cliente',
+      message: '¿Está seguro de eliminar este cliente?'
+    })
+    if (!confirmed) return
+    try {
+      await clientService.delete(id)
+      loadClients()
+    } catch (error) {
+      await alertDialog({ title: 'Error', message: 'Error al eliminar cliente' })
     }
   }
 
@@ -47,7 +52,7 @@ export default function Clients() {
       setShowModal(true)
     } catch (error) {
       console.error('Error fetching client details:', error)
-      alert('Error al cargar información del cliente')
+      await alertDialog({ title: 'Error', message: 'Error al cargar información del cliente' })
     }
   }
 
@@ -129,6 +134,7 @@ function ClientModal({ client, onClose }) {
   }
   const [formData, setFormData] = useState(client ? { ...defaultForm, ...client } : defaultForm)
   const [saving, setSaving] = useState(false)
+  const { alertDialog } = useDialog()
 
   useEffect(() => {
     setFormData(client ? { ...defaultForm, ...client } : defaultForm)
@@ -145,7 +151,7 @@ function ClientModal({ client, onClose }) {
       }
       onClose()
     } catch (error) {
-      alert('Error al guardar cliente')
+      await alertDialog({ title: 'Error', message: 'Error al guardar cliente' })
     } finally {
       setSaving(false)
     }

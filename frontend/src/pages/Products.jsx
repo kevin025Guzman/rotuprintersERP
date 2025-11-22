@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { productService, categoryService } from '../services/productService'
 import { simpleInventoryService } from '../services/simpleInventoryService'
 import { Plus, Edit, Trash2, Package } from 'lucide-react'
+import { useDialog } from '../context/DialogContext'
 
 export default function Products() {
   const [products, setProducts] = useState([])
@@ -10,6 +11,7 @@ export default function Products() {
   const [inventoryProducts, setInventoryProducts] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const { alertDialog, confirmDialog } = useDialog()
 
   useEffect(() => {
     loadData()
@@ -35,14 +37,20 @@ export default function Products() {
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Está seguro de desactivar este producto? El producto no se eliminará pero dejará de aparecer en la lista.')) {
-      try {
-        await productService.delete(id)
-        alert('Producto desactivado correctamente')
-        loadData()
-      } catch (error) {
-        alert('Error al desactivar producto: ' + (error.response?.data?.message || error.message))
-      }
+    const confirmed = await confirmDialog({
+      title: 'Desactivar producto',
+      message: '¿Está seguro de desactivar este producto? El producto dejará de aparecer en la lista.',
+    })
+    if (!confirmed) return
+    try {
+      await productService.delete(id)
+      await alertDialog({ title: 'Éxito', message: 'Producto desactivado correctamente.' })
+      loadData()
+    } catch (error) {
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al desactivar producto: ' + (error.response?.data?.message || error.message),
+      })
     }
   }
 
@@ -53,7 +61,7 @@ export default function Products() {
       setShowModal(true)
     } catch (error) {
       console.error('Error fetching product details:', error)
-      alert('Error al cargar información del producto')
+      await alertDialog({ title: 'Error', message: 'Error al cargar información del producto' })
     }
   }
 
@@ -153,6 +161,7 @@ function ProductModal({ product, categories = [], inventory = [], onClose }) {
   }
   const [formData, setFormData] = useState(product ? { ...defaultFormState, ...product } : defaultFormState)
   const [saving, setSaving] = useState(false)
+  const { alertDialog } = useDialog()
   
   // Asegurar que categories sea un array
   const categoryList = Array.isArray(categories) ? categories : []
@@ -199,7 +208,10 @@ function ProductModal({ product, categories = [], inventory = [], onClose }) {
       }
       onClose()
     } catch (error) {
-      alert('Error al guardar producto: ' + (error.response?.data?.detail || error.message))
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al guardar producto: ' + (error.response?.data?.detail || error.message),
+      })
     } finally {
       setSaving(false)
     }

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { simpleInventoryService } from '../services/simpleInventoryService';
+import { useDialog } from '../context/DialogContext';
 import logoImage from '../assets/logo.png';
 
 export default function SimpleInventory() {
@@ -22,6 +23,7 @@ export default function SimpleInventory() {
     key: 'name',
     direction: 'asc'
   });
+  const { alertDialog, confirmDialog } = useDialog();
 
   const loadLogoImage = () => (
     new Promise((resolve, reject) => {
@@ -41,7 +43,7 @@ export default function SimpleInventory() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error loading products:', error);
-      alert('Error al cargar los productos');
+      await alertDialog({ title: 'Error', message: 'Error al cargar los productos' });
     } finally {
       setLoading(false);
     }
@@ -52,14 +54,17 @@ export default function SimpleInventory() {
   }, [searchTerm, filters]);
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Está seguro de eliminar este producto?')) {
-      try {
-        await simpleInventoryService.deleteProduct(id);
-        loadProducts();
-      } catch (error) {
-        console.error('Error deleting product:', error);
-        alert('Error al eliminar el producto');
-      }
+    const confirmed = await confirmDialog({
+      title: 'Eliminar producto',
+      message: '¿Está seguro de eliminar este producto?'
+    });
+    if (!confirmed) return;
+    try {
+      await simpleInventoryService.deleteProduct(id);
+      loadProducts();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      await alertDialog({ title: 'Error', message: 'Error al eliminar el producto' });
     }
   };
 
@@ -72,7 +77,7 @@ export default function SimpleInventory() {
       loadProducts();
     } catch (error) {
       console.error('Error adjusting stock:', error);
-      alert('Error al ajustar el inventario');
+      await alertDialog({ title: 'Error', message: 'Error al ajustar el inventario' });
     }
   };
 

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { reportService } from '../services/reportService'
 import { BarChart3, DollarSign, Calendar, FileDown } from 'lucide-react'
+import { useDialog } from '../context/DialogContext'
 
 export default function Reports() {
   const [salesReport, setSalesReport] = useState(null)
   const [inventoryReport, setInventoryReport] = useState(null)
   const [dashboardStats, setDashboardStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { alertDialog } = useDialog()
 
   useEffect(() => {
     loadReports()
@@ -57,7 +59,7 @@ export default function Reports() {
       link.remove()
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      alert('Error al generar PDF: ' + error.message)
+      await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
   }
 
@@ -89,7 +91,7 @@ export default function Reports() {
       link.remove()
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      alert('Error al generar PDF: ' + error.message)
+      await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
   }
 

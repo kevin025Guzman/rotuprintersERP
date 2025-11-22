@@ -5,9 +5,11 @@ import { productService } from '../services/productService'
 import { useAuthStore } from '../store/authStore'
 import { Plus, Eye, CheckCircle, XCircle, FileDown, Trash2, Filter, X as CloseIcon } from 'lucide-react'
 import { format } from 'date-fns'
+import { useDialog } from '../context/DialogContext'
 
 export default function Sales() {
   const { user } = useAuthStore()
+  const { alertDialog, confirmDialog } = useDialog()
   const [allSales, setAllSales] = useState([])
   const [filteredSales, setFilteredSales] = useState([])
   const [loading, setLoading] = useState(true)
@@ -39,19 +41,24 @@ export default function Sales() {
 
   const handleDeleteSelected = async () => {
     if (selectedIds.length === 0) {
-      alert('Seleccione al menos una venta para eliminar.')
+      await alertDialog({ title: 'Aviso', message: 'Seleccione al menos una venta para eliminar.' })
       return
     }
-    if (!window.confirm('¿Eliminar permanentemente las ventas seleccionadas? Esta acción no se puede deshacer.')) {
-      return
-    }
+    const confirmed = await confirmDialog({
+      title: 'Confirmar eliminación',
+      message: '¿Eliminar permanentemente las ventas seleccionadas? Esta acción no se puede deshacer.',
+    })
+    if (!confirmed) return
     try {
       await saleService.deleteBulk(selectedIds)
-      alert('Ventas eliminadas correctamente')
+      await alertDialog({ title: 'Éxito', message: 'Ventas eliminadas correctamente.' })
       setSelectedIds([])
       loadSales()
     } catch (error) {
-      alert('Error al eliminar ventas: ' + (error.response?.data?.detail || error.message))
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al eliminar ventas: ' + (error.response?.data?.detail || error.message),
+      })
     }
   }
   const [filters, setFilters] = useState(initialFilters)
@@ -145,25 +152,31 @@ export default function Sales() {
   }
 
   const handleComplete = async (id) => {
-    if (window.confirm('¿Completar esta venta? Esto actualizará el inventario.')) {
-      try {
-        await saleService.complete(id)
-        loadSales()
-        alert('Venta completada exitosamente')
-      } catch (error) {
-        alert('Error al completar venta')
-      }
+    const confirmed = await confirmDialog({
+      title: 'Completar venta',
+      message: '¿Completar esta venta? Esto actualizará el inventario.',
+    })
+    if (!confirmed) return
+    try {
+      await saleService.complete(id)
+      loadSales()
+      await alertDialog({ title: 'Éxito', message: 'Venta completada exitosamente.' })
+    } catch (error) {
+      await alertDialog({ title: 'Error', message: 'Error al completar venta' })
     }
   }
 
   const handleCancel = async (id) => {
-    if (window.confirm('¿Cancelar esta venta?')) {
-      try {
-        await saleService.cancel(id)
-        loadSales()
-      } catch (error) {
-        alert('Error al cancelar venta')
-      }
+    const confirmed = await confirmDialog({
+      title: 'Cancelar venta',
+      message: '¿Cancelar esta venta?',
+    })
+    if (!confirmed) return
+    try {
+      await saleService.cancel(id)
+      loadSales()
+    } catch (error) {
+      await alertDialog({ title: 'Error', message: 'Error al cancelar venta' })
     }
   }
 
@@ -172,7 +185,7 @@ export default function Sales() {
       const response = await saleService.getById(id)
       setViewingSale(response.data)
     } catch (error) {
-      alert('Error al cargar detalles de la venta')
+      await alertDialog({ title: 'Error', message: 'Error al cargar detalles de la venta' })
     }
   }
 
@@ -205,7 +218,7 @@ export default function Sales() {
       link.remove()
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      alert('Error al generar PDF: ' + error.message)
+      await alertDialog({ title: 'Error', message: 'Error al generar PDF: ' + error.message })
     }
   }
 
@@ -242,7 +255,7 @@ export default function Sales() {
       link.remove()
       window.URL.revokeObjectURL(downloadUrl)
     } catch (error) {
-      alert('Error al descargar PDF: ' + error.message)
+      await alertDialog({ title: 'Error', message: 'Error al descargar PDF: ' + error.message })
     }
   }
 
@@ -469,6 +482,7 @@ function SaleModal({ onClose }) {
   })
   const [applyTax, setApplyTax] = useState(true)
   const [saving, setSaving] = useState(false)
+  const { alertDialog } = useDialog()
 
   useEffect(() => {
     loadData()
@@ -536,7 +550,7 @@ function SaleModal({ onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (formData.items.length === 0) {
-      alert('Debe agregar al menos un producto')
+      await alertDialog({ title: 'Aviso', message: 'Debe agregar al menos un producto.' })
       return
     }
     setSaving(true)
@@ -550,7 +564,10 @@ function SaleModal({ onClose }) {
       onClose()
     } catch (error) {
       console.error('Error completo:', error.response?.data)
-      alert('Error al crear venta: ' + (error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message))
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al crear venta: ' + (error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message),
+      })
     } finally {
       setSaving(false)
     }

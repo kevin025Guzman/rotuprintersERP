@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { userService } from '../services/userService'
 import { Plus, X } from 'lucide-react'
+import { useDialog } from '../context/DialogContext'
 
 export default function Users() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const { alertDialog } = useDialog()
 
   useEffect(() => {
     loadUsers()
@@ -96,16 +98,20 @@ function UserModal({ onClose, onSuccess }) {
     is_active: true
   })
   const [saving, setSaving] = useState(false)
+  const { alertDialog } = useDialog()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSaving(true)
     try {
       await userService.create(formData)
-      alert('Usuario creado correctamente')
+      await alertDialog({ title: 'Éxito', message: 'Usuario creado correctamente' })
       onSuccess()
     } catch (error) {
-      alert('Error al crear usuario: ' + (error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message))
+      await alertDialog({
+        title: 'Error',
+        message: 'Error al crear usuario: ' + (error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message)
+      })
     } finally {
       setSaving(false)
     }
