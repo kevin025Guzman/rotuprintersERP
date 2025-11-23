@@ -115,7 +115,7 @@ export default function SimpleProductForm() {
                 value={formData.name}
                 onChange={handleChange}
                 className="input-field w-full"
-                placeholder="Ej: Taza personalizada 12oz"
+                placeholder="Ej: Banner"
                 required
               />
             </div>

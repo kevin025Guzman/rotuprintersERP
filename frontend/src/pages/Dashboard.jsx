@@ -132,13 +132,13 @@ export default function Dashboard() {
       </div>
 
       {/* Alerts */}
-      {stats?.inventory?.low_stock > 0 && (
+      {manualLowStock.length > 0 && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
           <div className="flex items-center">
             <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-3" />
             <div>
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">
-                Productos con stock bajo: {stats.inventory.low_stock}
+                Productos con stock bajo (≤ {stats?.inventory?.manual_low_stock_threshold || 3}): {manualLowStock.length}
               </p>
               <p className="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
                 Revisa el inventario para reabastecer productos
