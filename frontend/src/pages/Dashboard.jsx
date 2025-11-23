@@ -50,6 +50,15 @@ export default function Dashboard() {
     )
   }
 
+  const manualLowStock = stats?.inventory?.manual_low_stock || []
+  const manualLowStockNames = manualLowStock
+    .slice(0, 3)
+    .map((item) => item.name)
+    .join(', ')
+  const manualLowStockSubtitle = manualLowStock.length > 0
+    ? `${manualLowStockNames}${manualLowStock.length > 3 ? ` +${manualLowStock.length - 3} más` : ''}`
+    : 'Sin alertas'
+
   const statCards = [
     {
       title: 'Ventas del Día',
@@ -75,6 +84,13 @@ export default function Dashboard() {
       value: stats?.clients?.total || 0,
       icon: Users,
       color: 'bg-secondary',
+    },
+    {
+      title: 'Stock bajo (Inventario manual)',
+      value: manualLowStock.length,
+      subtitle: manualLowStockSubtitle,
+      icon: Package,
+      color: 'bg-yellow-500',
     },
   ]
 
@@ -150,6 +166,26 @@ export default function Dashboard() {
               <span className="font-semibold text-yellow-600">
                 {stats?.inventory?.low_stock || 0}
               </span>
+            </div>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+                Inventario manual ({manualLowStock.length} con stock ≤ {stats?.inventory?.manual_low_stock_threshold || 3})
+              </p>
+              {manualLowStock.length > 0 ? (
+                <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                  {manualLowStock.slice(0, 5).map((item) => (
+                    <li key={item.id} className="flex justify-between">
+                      <span>{item.name}</span>
+                      <span className="font-semibold text-red-600">{item.quantity}</span>
+                    </li>
+                  ))}
+                  {manualLowStock.length > 5 && (
+                    <li className="text-xs text-gray-500">+{manualLowStock.length - 5} más...</li>
+                  )}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sin alertas</p>
+              )}
             </div>
           </div>
         </div>

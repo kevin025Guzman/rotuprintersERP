@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { reportService } from '../services/reportService'
-import { BarChart3, DollarSign, Calendar, FileDown } from 'lucide-react'
+import { BarChart3, DollarSign, Calendar, FileDown, Package } from 'lucide-react'
 import { useDialog } from '../context/DialogContext'
 
 export default function Reports() {
@@ -104,7 +104,7 @@ export default function Reports() {
           <h3 className="text-lg font-semibold mb-4 flex items-center justify-between">
             <div className="flex items-center">
               <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-              Resumen de Ventas (Total)
+              Resumen de Ventas (Mes actual)
             </div>
             <button
               onClick={handleDownloadTotalSalesPDF}
@@ -118,15 +118,15 @@ export default function Reports() {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Total Ventas</span>
-              <span className="font-bold">L {salesReport?.summary?.total_sales?.toFixed(2) || '0.00'}</span>
+              <span className="font-bold">L {salesReport?.current_month_summary?.total_sales?.toFixed(2) || '0.00'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Cantidad</span>
-              <span className="font-bold">{salesReport?.summary?.total_count || 0}</span>
+              <span className="font-bold">{salesReport?.current_month_summary?.total_count || 0}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Promedio</span>
-              <span className="font-bold">L {salesReport?.summary?.average_sale?.toFixed(2) || '0.00'}</span>
+              <span className="font-bold">L {salesReport?.current_month_summary?.average_sale?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
         </div>
@@ -156,14 +156,20 @@ export default function Reports() {
         </div>
 
         <div className="card">
-          <h3 className="text-lg font-semibold mb-4">Productos con Stock Bajo</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Package className="w-5 h-5 text-yellow-500" />
+            Stock bajo (Inventario manual)
+          </h3>
           <div className="space-y-2">
-            {inventoryReport?.low_stock_products?.slice(0, 5).map((product, idx) => (
+            {dashboardStats?.inventory?.manual_low_stock?.slice(0, 5).map((product, idx) => (
               <div key={idx} className="flex justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-400">{product.name}</span>
-                <span className="font-semibold text-red-600">{product.quantity_available}</span>
+                <span className="font-semibold text-red-600">{product.quantity}</span>
               </div>
             ))}
+            {!dashboardStats?.inventory?.manual_low_stock?.length && (
+              <p className="text-sm text-gray-500">Sin alertas</p>
+            )}
           </div>
         </div>
       </div>

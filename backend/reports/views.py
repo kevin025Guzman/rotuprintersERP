@@ -14,7 +14,6 @@ from sales.models import Sale
 from quotations.models import Quotation
 from inventory.models import Product
 from clients.models import Client
-from users.permissions import IsAdmin
 from utils.pdf import add_branding_to_canvas
 from simple_inventory.models import SimpleProduct
 
@@ -63,10 +62,25 @@ class DashboardStatsView(APIView):
         
         total_quotations = Quotation.objects.count()
         
-        # Inventory statistics
+        # Inventory statistics (main catalog)
         low_stock_products = len([p for p in Product.objects.filter(is_active=True) if p.is_low_stock])
         out_of_stock_products = Product.objects.filter(quantity_available=0, is_active=True).count()
         total_products = Product.objects.filter(is_active=True).count()
+
+        # Manual inventory (SimpleProduct) low stock snapshot
+        manual_low_stock_threshold = 3
+        manual_products = SimpleProduct.objects.all()
+        manual_low_stock_all = [
+            {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'quantity': product.quantity,
+                'description': product.description,
+            }
+            for product in manual_products
+            if product.quantity <= manual_low_stock_threshold
+        ]
         
         # Clients statistics
         total_clients = Client.objects.filter(is_active=True).count()
@@ -112,7 +126,10 @@ class DashboardStatsView(APIView):
             'inventory': {
                 'low_stock': low_stock_products,
                 'out_of_stock': out_of_stock_products,
-                'total_products': total_products
+                'total_products': total_products,
+                'manual_low_stock_threshold': manual_low_stock_threshold,
+                'manual_low_stock_count': len(manual_low_stock_all),
+                'manual_low_stock': manual_low_stock_all[:8],
             },
             'clients': {
                 'total': total_clients
@@ -173,12 +190,30 @@ class SalesReportView(APIView):
         total_sales = summary['total_sales'] or Decimal('0')
         total_count = summary['total_count'] or 0
         average_sale = (total_sales / total_count) if total_count else Decimal('0')
+
+        # Current month summary
+        today = timezone.localdate()
+        start_of_month = today.replace(day=1)
+        month_queryset = queryset.filter(completed_at__date__gte=start_of_month)
+        month_summary = month_queryset.aggregate(
+            total_sales=Sum('total_amount'),
+            total_count=Count('id')
+        )
+        month_total = month_summary['total_sales'] or Decimal('0')
+        month_count = month_summary['total_count'] or 0
+        month_average = (month_total / month_count) if month_count else Decimal('0')
         
         return Response({
             'summary': {
                 'total_sales': float(total_sales),
                 'total_count': total_count,
                 'average_sale': float(average_sale)
+            },
+            'current_month_summary': {
+                'period': start_of_month.strftime('%Y-%m'),
+                'total_sales': float(month_total),
+                'total_count': month_count,
+                'average_sale': float(month_average)
             },
             'sales_by_period': [
                 {
@@ -213,7 +248,7 @@ class InventoryReportView(APIView):
     
     def get(self, request):
         manual_products = SimpleProduct.objects.all().order_by('name')
-        low_stock_threshold = int(request.query_params.get('low_stock_threshold', 5))
+        low_stock_threshold = int(request.query_params.get('low_stock_threshold', 3))
 
         low_stock = [
             {
