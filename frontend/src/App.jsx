@@ -8,6 +8,7 @@ import Clients from './pages/Clients'
 import Products from './pages/Products'
 import Quotations from './pages/Quotations'
 import Sales from './pages/Sales'
+import Expenses from './pages/Expenses'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
 import Profile from './pages/Profile'
@@ -29,6 +30,7 @@ function App() {
             <Route path="simple-inventory/edit/:id" element={<SimpleProductForm />} />
             <Route path="quotations" element={<Quotations />} />
             <Route path="sales" element={<Sales />} />
+            <Route path="expenses" element={<Expenses />} />
             <Route path="reports" element={<Reports />} />
             <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
             <Route path="profile" element={<Profile />} />

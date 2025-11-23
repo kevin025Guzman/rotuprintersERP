@@ -79,7 +79,7 @@ class SaleListSerializer(serializers.ModelSerializer):
         model = Sale
         fields = [
             'id', 'invoice_number', 'client_name', 'created_by_username',
-            'status', 'payment_method', 'total_amount', 'created_at', 'items_count'
+            'status', 'payment_method', 'notes', 'total_amount', 'created_at', 'items_count'
         ]
     
     def get_items_count(self, obj):

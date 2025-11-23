@@ -345,7 +345,7 @@ export default function Sales() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase"># Factura</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Cliente</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Vendedor</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Pago</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Notas</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Total</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Estado</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Fecha</th>
@@ -367,7 +367,7 @@ export default function Sales() {
                 <td className="px-6 py-4 text-sm font-medium">{sale.invoice_number}</td>
                 <td className="px-6 py-4 text-sm">{sale.client_name}</td>
                 <td className="px-6 py-4 text-sm">{sale.created_by_username}</td>
-                <td className="px-6 py-4 text-sm">{sale.payment_method}</td>
+                <td className="px-6 py-4 text-sm">{sale.notes || '—'}</td>
                 <td className="px-6 py-4 text-sm font-semibold">L {parseFloat(sale.total_amount).toFixed(2)}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 text-xs rounded-full ${

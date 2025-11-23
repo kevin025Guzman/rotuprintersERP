@@ -59,6 +59,13 @@ export default function Expenses() {
     openPdfWithToken(`${baseUrl}/expenses/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
+  const formatExpenseDate = (value) => {
+    if (!value) return 'N/D'
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return 'N/D'
+    return format(parsed, 'dd/MM/yyyy')
+  }
+
   const paginatedExpenses = useMemo(() => {
     const start = (page - 1) * pageSize
     return expenses.slice(start, start + pageSize)
@@ -171,7 +178,7 @@ export default function Expenses() {
             {paginatedExpenses.length > 0 ? (
               paginatedExpenses.map((expense) => (
                 <tr key={expense.id} className="table-row">
-                  <td className="px-6 py-4 text-sm">{format(new Date(expense.date), 'dd/MM/yyyy')}</td>
+                  <td className="px-6 py-4 text-sm">{formatExpenseDate(expense.date)}</td>
                   <td className="px-6 py-4 text-sm">{expense.description}</td>
                   <td className="px-6 py-4 text-sm font-semibold">L {parseFloat(expense.amount).toLocaleString('es-HN', { minimumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-sm">{expense.created_by_name || 'N/D'}</td>
