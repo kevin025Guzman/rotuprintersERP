@@ -35,6 +35,7 @@ urlpatterns = [
     path('api/quotations/', include('quotations.urls')),
     path('api/sales/', include('sales.urls')),
     path('api/reports/', include('reports.urls')),
+    path('api/expenses/', include('expenses.urls')),
     
     # API Documentation
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

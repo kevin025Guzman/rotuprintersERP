@@ -2,7 +2,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { 
   LayoutDashboard, Users, Package, FileText, DollarSign, 
-  BarChart3, Settings, LogOut, Menu, X, Moon, Sun
+  BarChart3, Settings, LogOut, Menu, X, Moon, Sun, Receipt
 } from 'lucide-react'
 import { useState } from 'react'
 import { useDarkMode } from '../hooks/useDarkMode'
@@ -21,11 +21,12 @@ export default function Layout() {
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Ventas', href: '/sales', icon: DollarSign },
+    { name: 'Gastos', href: '/expenses', icon: Receipt },
     { name: 'Clientes', href: '/clients', icon: Users },
     { name: 'Productos', href: '/products', icon: Package },
     { name: 'Inventario', href: '/simple-inventory', icon: Package },
     { name: 'Cotizaciones', href: '/quotations', icon: FileText },
-    { name: 'Ventas', href: '/sales', icon: DollarSign },
     { name: 'Reportes', href: '/reports', icon: BarChart3 },
   ]
 
