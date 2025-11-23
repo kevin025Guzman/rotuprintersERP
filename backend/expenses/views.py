@@ -10,9 +10,11 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
-from rest_framework import filters, viewsets
+from rest_framework import filters, viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from users.permissions import IsAdminOrSeller
 from utils.pdf import add_branding_to_canvas
@@ -43,6 +45,11 @@ class ExpenseViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__lte=end_date)
 
         return queryset
+
+    def perform_destroy(self, instance):
+        if not getattr(self.request.user, 'role', None) == 'ADMIN':
+            raise PermissionDenied('Solo administradores pueden eliminar gastos.')
+        instance.delete()
 
     @action(detail=False, methods=['get'], url_path='export_pdf')
     def export_pdf(self, request):
@@ -123,3 +130,20 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         start_label = start or 'inicio'
         end_label = end or timezone.localdate().strftime('%d/%m/%Y')
         return f'Rango de fechas: {start_label} - {end_label}'
+
+    @action(detail=False, methods=['post'], url_path='delete_bulk')
+    def delete_bulk(self, request):
+        if not getattr(request.user, 'role', None) == 'ADMIN':
+            raise PermissionDenied('Solo administradores pueden eliminar gastos.')
+
+        ids = request.data.get('ids')
+        if not isinstance(ids, list) or not ids:
+            return Response(
+                {'detail': 'Debe proporcionar una lista de IDs a eliminar.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        expenses = Expense.objects.filter(id__in=ids)
+        deleted_count = expenses.count()
+        expenses.delete()
+        return Response({'deleted': deleted_count})

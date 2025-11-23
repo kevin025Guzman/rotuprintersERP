@@ -94,6 +94,7 @@ function UserModal({ onClose, onSuccess }) {
     first_name: '',
     last_name: '',
     password: '',
+    password_confirm: '',
     role: 'SELLER',
     is_active: true
   })
@@ -104,6 +105,11 @@ function UserModal({ onClose, onSuccess }) {
     e.preventDefault()
     setSaving(true)
     try {
+      if (!formData.password || formData.password !== formData.password_confirm) {
+        setSaving(false)
+        await alertDialog({ title: 'Aviso', message: 'Las contraseñas no coinciden.' })
+        return
+      }
       await userService.create(formData)
       await alertDialog({ title: 'Éxito', message: 'Usuario creado correctamente' })
       onSuccess()
@@ -176,6 +182,17 @@ function UserModal({ onClose, onSuccess }) {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  className="input-field"
+                  required
+                  minLength="8"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirmar contraseña *</label>
+                <input
+                  type="password"
+                  value={formData.password_confirm}
+                  onChange={(e) => setFormData({ ...formData, password_confirm: e.target.value })}
                   className="input-field"
                   required
                   minLength="8"

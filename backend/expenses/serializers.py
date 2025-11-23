@@ -4,7 +4,7 @@ from .models import Expense
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
-    created_by_name = serializers.CharField(source='created_by.get_full_name', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
@@ -16,3 +16,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['created_by'] = request.user
         return super().create(validated_data)
+
+    def get_created_by_name(self, obj):
+        if not obj.created_by:
+            return None
+        full_name = (obj.created_by.get_full_name() or '').strip()
+        return full_name or obj.created_by.username
