@@ -81,7 +81,7 @@ export default function Users() {
                     'bg-green-100 text-green-800'
                   }`}>
                     {user.role === 'ADMIN' ? 'Administrador' :
-                     user.role === 'SELLER' ? 'Operaciones' : 'Vendedor'}
+                     user.role === 'SELLER' ? 'Operaciones' : 'Ventas'}
                   </span>
                 </td>
                 <td className="px-6 py-4">
@@ -287,7 +287,7 @@ function UserModal({ user, onClose, onSuccess }) {
                   required
                 >
                   <option value="SELLER">Operaciones</option>
-                  <option value="DESIGNER">Vendedor</option>
+                  <option value="DESIGNER">Ventas</option>
                   <option value="ADMIN">Administrador</option>
                 </select>
               </div>

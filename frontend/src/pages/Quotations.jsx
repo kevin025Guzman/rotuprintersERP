@@ -95,7 +95,7 @@ export default function Quotations() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase"># Cotización</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Cliente</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Vendedor</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Ventas</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Total</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Estado</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Fecha</th>
@@ -181,7 +181,7 @@ function QuotationDetailModal({ quotation, onClose, onDownload }) {
               <h3 className="text-lg font-semibold mb-3">Información General</h3>
               <div className="space-y-2 text-sm">
                 <div><span className="font-medium">Cliente:</span> {quotation.client_name}</div>
-                <div><span className="font-medium">Vendedor:</span> {quotation.created_by_username || 'N/D'}</div>
+                <div><span className="font-medium">Ventas:</span> {quotation.created_by_username || 'N/D'}</div>
                 <div>
                   <span className="font-medium">Estado:</span>{' '}
                   {quotation.status === 'PENDING' ? 'Pendiente' :

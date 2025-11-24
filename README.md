@@ -24,7 +24,7 @@ Sistema completo de gestión para empresa de diseño gráfico, rotulación e imp
 
 ### 1. **Usuarios y Roles**
 - ✅ Registro e inicio de sesión con JWT
-- ✅ 3 roles: Administrador, Vendedor, Diseñador
+- ✅ 3 roles: Administrador, Operaciones, Ventas
 - ✅ Permisos específicos por rol
 - ✅ Gestión de usuarios (solo Admin)
 
@@ -230,16 +230,15 @@ rotuprinters/
 - Configuración
 - Todos los reportes
 
-### Vendedor
+### Operaciones
 - Gestión de clientes
 - Crear y gestionar cotizaciones
 - Registrar ventas
 - Ver reportes básicos
 
-### Diseñador
-- Ver pedidos de diseño
-- Gestionar proyectos asignados
-- Acceso limitado a inventario
+### Ventas
+- Acceso a módulos de ventas, gastos, inventario manual y cotizaciones
+- Sin acceso a Dashboard, Reportes ni Usuarios
 
 ## 🧪 Tests
 

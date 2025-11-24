@@ -107,7 +107,7 @@ export default function Layout() {
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.role === 'ADMIN' ? 'Administrador' : 
-                   user?.role === 'SELLER' ? 'Operaciones' : 'Vendedor'}
+                   user?.role === 'SELLER' ? 'Operaciones' : 'Ventas'}
                 </p>
               </div>
             </div>

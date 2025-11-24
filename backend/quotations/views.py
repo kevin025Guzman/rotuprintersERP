@@ -157,7 +157,7 @@ class QuotationViewSet(viewsets.ModelViewSet):
         created_at = timezone.localtime(quotation.created_at)
         info_data = [
             ['Cliente:', quotation.client.name],
-            ['Vendedor:', quotation.created_by.username if quotation.created_by else 'N/D'],
+            ['Ventas:', quotation.created_by.username if quotation.created_by else 'N/D'],
             ['Estado:', quotation.get_status_display()],
             ['Creada:', created_at.strftime('%d/%m/%Y %H:%M')],
         ]

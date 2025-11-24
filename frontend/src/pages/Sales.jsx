@@ -272,7 +272,7 @@ export default function Sales() {
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 className="input-field"
-                placeholder="Cliente, factura o vendedor"
+                placeholder="Cliente, factura o ventas"
               />
             </div>
             <div>
@@ -351,7 +351,7 @@ export default function Sales() {
               )}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase"># Factura</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Cliente</th>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Vendedor</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase">Ventas</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Notas</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Total</th>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase">Estado</th>
@@ -676,7 +676,7 @@ function SaleDetailModal({ sale, onClose }) {
               <div className="space-y-2">
                 <div><span className="font-medium">Factura #:</span> {sale.invoice_number}</div>
                 <div><span className="font-medium">Cliente:</span> {sale.client_name}</div>
-                <div><span className="font-medium">Vendedor:</span> {sale.created_by_username}</div>
+                <div><span className="font-medium">Ventas:</span> {sale.created_by_username}</div>
                 <div><span className="font-medium">Fecha:</span> {formatDateTime(sale.created_at)}</div>
                 <div><span className="font-medium">Método de Pago:</span> {
                   sale.payment_method === 'CASH' ? 'Efectivo' : 'Transferencia'

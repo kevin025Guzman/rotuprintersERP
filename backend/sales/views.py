@@ -163,7 +163,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             ['Fecha:', sale.created_at.strftime('%d/%m/%Y %H:%M')],
             ['Cliente:', sale.client.name],
             ['RTN Cliente:', sale.client.rtn or 'N/A'],
-            ['Vendedor:', sale.created_by.get_full_name() or sale.created_by.username],
+            ['Ventas:', sale.created_by.get_full_name() or sale.created_by.username],
             ['Método de Pago:', sale.get_payment_method_display()],
         ]
         
@@ -351,7 +351,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             elements.append(Paragraph('Detalle de Ventas', styles['Heading3']))
             elements.append(Spacer(1, 0.1 * inch))
             table_data = [[
-                '# Factura', 'Cliente', 'Vendedor',
+                '# Factura', 'Cliente', 'Ventas',
                 'Pago', 'Fecha y Hora', 'Total'
             ]]
             payment_map = dict(Sale.PaymentMethod.choices)

@@ -40,7 +40,7 @@ class Sale(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         related_name='sales',
-        verbose_name='Vendedor'
+        verbose_name='Ventas'
     )
     status = models.CharField(
         max_length=20,
