@@ -30,6 +30,17 @@ class IsAdminOrVendor(permissions.BasePermission):
         )
 
 
+class IsAdminOperationsOrVendor(permissions.BasePermission):
+    """Allow access to administrators, operations or vendor roles."""
+
+    def has_permission(self, request, view):
+        return (
+            request.user and
+            request.user.is_authenticated and
+            (request.user.is_admin or request.user.is_operations or request.user.is_vendor)
+        )
+
+
 class IsOwnerOrAdmin(permissions.BasePermission):
     """Permission class for resource owner or admin."""
     

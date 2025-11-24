@@ -16,7 +16,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from users.permissions import IsAdminOrSeller
+from users.permissions import IsAdminOperationsOrVendor
 from utils.pdf import add_branding_to_canvas
 
 from .models import Expense
@@ -26,7 +26,7 @@ from .serializers import ExpenseSerializer
 class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.select_related('created_by').all()
     serializer_class = ExpenseSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['date']
     search_fields = ['description']

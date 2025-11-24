@@ -14,7 +14,7 @@ from .models import Quotation, QuotationItem
 from .serializers import (
     QuotationSerializer, QuotationListSerializer, QuotationItemSerializer
 )
-from users.permissions import IsAdminOrSeller
+from users.permissions import IsAdminOperationsOrVendor
 from utils.pdf import add_branding_to_canvas
 
 
@@ -35,7 +35,7 @@ def get_logo_path():
 class QuotationViewSet(viewsets.ModelViewSet):
     """ViewSet for Quotation CRUD operations."""
     queryset = Quotation.objects.select_related('client', 'created_by').prefetch_related('items').all()
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['client', 'status', 'created_by']
     search_fields = ['quotation_number', 'client__name', 'client__company']
@@ -291,7 +291,7 @@ class QuotationItemViewSet(viewsets.ModelViewSet):
     """ViewSet for QuotationItem operations."""
     queryset = QuotationItem.objects.select_related('quotation', 'product').all()
     serializer_class = QuotationItemSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     
     def get_queryset(self):
         queryset = super().get_queryset()

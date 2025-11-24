@@ -18,7 +18,7 @@ from .serializers import (
     CreateSaleFromQuotationSerializer
 )
 from quotations.models import Quotation
-from users.permissions import IsAdminOrSeller
+from users.permissions import IsAdminOperationsOrVendor
 from utils.pdf import add_branding_to_canvas
 
 
@@ -39,7 +39,7 @@ def get_logo_path():
 class SaleViewSet(viewsets.ModelViewSet):
     """ViewSet for Sale CRUD operations."""
     queryset = Sale.objects.select_related('client', 'created_by', 'quotation').prefetch_related('items').all()
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['client', 'status', 'payment_method', 'created_by']
     search_fields = ['invoice_number', 'client__name', 'client__company']
@@ -429,14 +429,12 @@ class SaleViewSet(viewsets.ModelViewSet):
             'deleted': deleted_count,
             'invoice_numbers': deleted_invoices
         }, status=status.HTTP_200_OK)
-
-
 class SaleItemViewSet(viewsets.ModelViewSet):
     """ViewSet for SaleItem operations."""
     queryset = SaleItem.objects.select_related('sale', 'product').all()
     serializer_class = SaleItemSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
-    
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         sale_id = self.request.query_params.get('sale_id')

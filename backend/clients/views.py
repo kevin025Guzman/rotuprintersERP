@@ -5,13 +5,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Client
 from .serializers import ClientSerializer, ClientListSerializer
-from users.permissions import IsAdminOrSeller
+from users.permissions import IsAdminOperationsOrVendor
 
 
 class ClientViewSet(viewsets.ModelViewSet):
     """ViewSet for Client CRUD operations."""
     queryset = Client.objects.all()
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_active']
     search_fields = ['name', 'company', 'phone', 'email', 'rtn']

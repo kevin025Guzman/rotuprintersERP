@@ -9,14 +9,14 @@ from .serializers import (
     ProductCategorySerializer, ProductSerializer, 
     ProductListSerializer, StockMovementSerializer
 )
-from users.permissions import IsAdminOrSeller
+from users.permissions import IsAdminOperationsOrVendor, IsVendor
 
 
 class ProductCategoryViewSet(viewsets.ModelViewSet):
     """ViewSet for ProductCategory CRUD operations."""
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering = ['name']
@@ -66,7 +66,7 @@ class StockMovementViewSet(viewsets.ModelViewSet):
     """ViewSet for StockMovement operations."""
     queryset = StockMovement.objects.select_related('product', 'created_by').all()
     serializer_class = StockMovementSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['product', 'movement_type']
     ordering = ['-created_at']

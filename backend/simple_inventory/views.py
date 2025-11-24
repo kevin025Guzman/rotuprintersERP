@@ -11,14 +11,14 @@ from .serializers import (
     StockMovementSerializer,
     StockAdjustmentSerializer,
 )
-from .permissions import IsAdminOrReadOnly, IsAdminOrSeller, IsAdminOrSellerOrReadOnly
+from .permissions import IsAdminOrReadOnly, IsAdminOrOperations, IsAdminOrOperationsOrReadOnly
 
 
 class SimpleProductViewSet(viewsets.ModelViewSet):
     """CRUD de productos con inventario manual."""
 
     queryset = SimpleProduct.objects.all().order_by('name')
-    permission_classes = [IsAdminOrSellerOrReadOnly]
+    permission_classes = [IsAdminOrOperationsOrReadOnly]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter, DjangoFilterBackend]
     search_fields = ['name', 'description', 'sku']
     ordering_fields = ['name', 'quantity', 'created_at']
@@ -46,7 +46,7 @@ class SimpleProductViewSet(viewsets.ModelViewSet):
                 pass
         return queryset
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdminOrSeller])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsAdminOrOperations])
     def adjust_stock(self, request, pk=None):
         product = self.get_object()
         serializer = StockAdjustmentSerializer(data=request.data)
@@ -85,7 +85,7 @@ class StockMovementViewSet(viewsets.ModelViewSet):
 
     queryset = StockMovement.objects.select_related('product', 'created_by').all()
     serializer_class = StockMovementSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrSeller]
+    permission_classes = [IsAuthenticated, IsAdminOrOperations]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['product', 'movement_type']
     ordering = ['-created_at']
