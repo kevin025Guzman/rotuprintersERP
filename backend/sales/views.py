@@ -352,9 +352,8 @@ class SaleViewSet(viewsets.ModelViewSet):
             elements.append(Spacer(1, 0.1 * inch))
             table_data = [[
                 '# Factura', 'Cliente', 'Vendedor',
-                'Pago', 'Estado', 'Fecha y Hora', 'Total'
+                'Pago', 'Fecha y Hora', 'Total'
             ]]
-            status_map = dict(Sale.Status.choices)
             payment_map = dict(Sale.PaymentMethod.choices)
             for sale in sales:
                 created_local = timezone.localtime(sale.created_at)
@@ -363,12 +362,11 @@ class SaleViewSet(viewsets.ModelViewSet):
                     sale.client.name[:25],
                     (sale.created_by.get_full_name() or sale.created_by.username)[:20] if sale.created_by else 'N/D',
                     payment_map.get(sale.payment_method, sale.payment_method),
-                    status_map.get(sale.status, sale.status),
                     created_local.strftime('%d/%m/%Y %H:%M'),
                     f'L {sale.total_amount:.2f}',
                 ])
 
-            table = Table(table_data, colWidths=[1.0 * inch, 1.6 * inch, 1.6 * inch, 1.0 * inch, 1.1 * inch, 0.9 * inch, 1.0 * inch])
+            table = Table(table_data, colWidths=[1.0 * inch, 1.6 * inch, 1.6 * inch, 1.0 * inch, 1.2 * inch, 1.0 * inch])
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0055A4')),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
