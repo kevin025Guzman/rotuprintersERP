@@ -12,6 +12,43 @@ const getTodayLocalISO = () => {
   return today.toISOString().slice(0, 10)
 }
 
+const parseDateOnly = (value) => {
+  if (!value) return null
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const parseDateTime = (value) => {
+  if (!value) return null
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const formatExpenseDateTime = (dateValue, createdAtValue) => {
+  const dateOnly = parseDateOnly(dateValue)
+  const createdAt = parseDateTime(createdAtValue)
+
+  let finalDate
+  if (dateOnly && createdAt) {
+    finalDate = new Date(dateOnly)
+    finalDate.setHours(
+      createdAt.getHours(),
+      createdAt.getMinutes(),
+      createdAt.getSeconds(),
+      createdAt.getMilliseconds()
+    )
+  } else {
+    finalDate = dateOnly || createdAt
+  }
+
+  if (!finalDate) return 'N/D'
+  return format(finalDate, 'dd/MM/yyyy HH:mm')
+}
+
 export default function Expenses() {
   const { user } = useAuthStore()
   const [expenses, setExpenses] = useState([])
@@ -74,13 +111,6 @@ export default function Expenses() {
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api'
     openPdfWithToken(`${baseUrl}/expenses/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`)
-  }
-
-  const formatExpenseDateTime = (value) => {
-    if (!value) return 'N/D'
-    const parsed = new Date(value)
-    if (Number.isNaN(parsed.getTime())) return 'N/D'
-    return format(parsed, 'dd/MM/yyyy HH:mm')
   }
 
   const paginatedExpenses = useMemo(() => {
@@ -273,7 +303,7 @@ export default function Expenses() {
                       />
                     </td>
                   )}
-                  <td className="px-6 py-4 text-sm">{formatExpenseDateTime(expense.date || expense.created_at)}</td>
+                  <td className="px-6 py-4 text-sm">{formatExpenseDateTime(expense.date, expense.created_at)}</td>
                   <td className="px-6 py-4 text-sm">{expense.description}</td>
                   <td className="px-6 py-4 text-sm font-semibold">L {parseFloat(expense.amount).toLocaleString('es-HN', { minimumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-sm">{expense.created_by_name || 'N/D'}</td>

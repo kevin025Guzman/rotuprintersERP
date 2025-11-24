@@ -7,6 +7,13 @@ import { Plus, Eye, CheckCircle, XCircle, FileDown, Trash2, Filter, X as CloseIc
 import { format } from 'date-fns'
 import { useDialog } from '../context/DialogContext'
 
+const formatDateTime = (value) => {
+  if (!value) return 'N/D'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return 'N/D'
+  return format(parsed, 'dd/MM/yyyy HH:mm')
+}
+
 export default function Sales() {
   const { user } = useAuthStore()
   const { alertDialog, confirmDialog } = useDialog()
@@ -379,7 +386,7 @@ export default function Sales() {
                      sale.status === 'COMPLETED' ? 'Completada' : 'Cancelada'}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm">{format(new Date(sale.created_at), 'dd/MM/yyyy')}</td>
+                <td className="px-6 py-4 text-sm">{formatDateTime(sale.created_at)}</td>
                 <td className="px-6 py-4 text-right">
                   <button onClick={() => handleView(sale.id)} className="text-blue-600 hover:text-blue-900 mr-2" title="Ver detalles"><Eye className="w-5 h-5" /></button>
                   {sale.status === 'PENDING' && (
@@ -670,7 +677,7 @@ function SaleDetailModal({ sale, onClose }) {
                 <div><span className="font-medium">Factura #:</span> {sale.invoice_number}</div>
                 <div><span className="font-medium">Cliente:</span> {sale.client_name}</div>
                 <div><span className="font-medium">Vendedor:</span> {sale.created_by_username}</div>
-                <div><span className="font-medium">Fecha:</span> {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                <div><span className="font-medium">Fecha:</span> {formatDateTime(sale.created_at)}</div>
                 <div><span className="font-medium">Método de Pago:</span> {
                   sale.payment_method === 'CASH' ? 'Efectivo' : 'Transferencia'
                 }</div>

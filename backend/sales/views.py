@@ -352,7 +352,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             elements.append(Spacer(1, 0.1 * inch))
             table_data = [[
                 '# Factura', 'Cliente', 'Vendedor',
-                'Pago', 'Estado', 'Fecha', 'Total'
+                'Pago', 'Estado', 'Fecha y Hora', 'Total'
             ]]
             status_map = dict(Sale.Status.choices)
             payment_map = dict(Sale.PaymentMethod.choices)
@@ -364,7 +364,7 @@ class SaleViewSet(viewsets.ModelViewSet):
                     (sale.created_by.get_full_name() or sale.created_by.username)[:20] if sale.created_by else 'N/D',
                     payment_map.get(sale.payment_method, sale.payment_method),
                     status_map.get(sale.status, sale.status),
-                    created_local.strftime('%d/%m/%Y'),
+                    created_local.strftime('%d/%m/%Y %H:%M'),
                     f'L {sale.total_amount:.2f}',
                 ])
 

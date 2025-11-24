@@ -54,7 +54,7 @@ class ExpenseViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='export_pdf')
     def export_pdf(self, request):
         queryset = self.filter_queryset(self.get_queryset())
-        expenses = queryset.order_by('-date')[:200]
+        expenses = queryset.order_by('-date', '-created_at')[:200]
         total_amount = queryset.aggregate(total=Sum('amount'))['total'] or 0
 
         buffer = BytesIO()
@@ -89,10 +89,25 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         elements.append(Spacer(1, 0.3 * inch))
 
         if expenses:
-            table_data = [['Fecha', 'Descripción', 'Monto (L)']]
+            table_data = [['Fecha y Hora', 'Descripción', 'Monto (L)']]
             for expense in expenses:
+                if expense.date:
+                    base_date = datetime.combine(expense.date, datetime.min.time())
+                    if expense.created_at:
+                        created_local = timezone.localtime(expense.created_at)
+                        base_date = base_date.replace(
+                            hour=created_local.hour,
+                            minute=created_local.minute,
+                            second=created_local.second,
+                            microsecond=created_local.microsecond
+                        )
+                else:
+                    base_date = expense.created_at
+
+                display_value = base_date.strftime('%d/%m/%Y %H:%M') if base_date else 'N/D'
+
                 table_data.append([
-                    expense.date.strftime('%d/%m/%Y'),
+                    display_value,
                     expense.description[:80],
                     f"L {expense.amount:.2f}",
                 ])
