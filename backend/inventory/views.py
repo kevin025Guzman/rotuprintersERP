@@ -9,7 +9,7 @@ from .serializers import (
     ProductCategorySerializer, ProductSerializer, 
     ProductListSerializer, StockMovementSerializer
 )
-from users.permissions import IsAdminOperationsOrVendor, IsVendor
+from users.permissions import IsAdminOperationsOrVendor
 
 
 class ProductCategoryViewSet(viewsets.ModelViewSet):
@@ -25,7 +25,7 @@ class ProductCategoryViewSet(viewsets.ModelViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     """ViewSet for Product CRUD operations."""
     queryset = Product.objects.select_related('category').filter(is_active=True)
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdminOperationsOrVendor]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'is_active', 'unit_measure']
     search_fields = ['name', 'sku', 'description', 'supplier']
