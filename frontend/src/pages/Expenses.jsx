@@ -15,8 +15,10 @@ const getTodayLocalISO = () => {
 const parseDateOnly = (value) => {
   if (!value) return null
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const parsed = new Date(`${value}T00:00:00`)
-    return Number.isNaN(parsed.getTime()) ? null : parsed
+    const [year, month, day] = value.split('-').map(Number)
+    const parsed = new Date(year, month - 1, day)
+    parsed.setHours(0, 0, 0, 0)
+    return parsed
   }
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : parsed
@@ -131,10 +133,13 @@ export default function Expenses() {
 
     expenses.forEach((expense) => {
       const amount = parseFloat(expense.amount || 0)
-      const rawDate = expense.date || expense.created_at
-      if (!rawDate || Number.isNaN(amount)) return
-      const expenseDate = new Date(rawDate)
-      if (Number.isNaN(expenseDate.getTime())) return
+      if (Number.isNaN(amount)) return
+
+      const expenseDate = expense.date
+        ? parseDateOnly(expense.date)
+        : parseDateTime(expense.created_at)
+
+      if (!expenseDate) return
 
       if (expenseDate >= threshold) {
         last30 += amount
