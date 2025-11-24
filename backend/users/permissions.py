@@ -8,25 +8,25 @@ class IsAdmin(permissions.BasePermission):
         return request.user and request.user.is_authenticated and request.user.is_admin
 
 
-class IsAdminOrSeller(permissions.BasePermission):
-    """Permission class for admin and seller users."""
+class IsAdminOrOperations(permissions.BasePermission):
+    """Allow access to administrators or operations (former seller) roles."""
     
     def has_permission(self, request, view):
         return (
             request.user and 
             request.user.is_authenticated and 
-            (request.user.is_admin or request.user.is_seller)
+            (request.user.is_admin or request.user.is_operations)
         )
 
 
-class IsAdminOrDesigner(permissions.BasePermission):
-    """Permission class for admin and designer users."""
+class IsAdminOrVendor(permissions.BasePermission):
+    """Allow access to administrators or vendor (former designer) roles."""
     
     def has_permission(self, request, view):
         return (
             request.user and 
             request.user.is_authenticated and 
-            (request.user.is_admin or request.user.is_designer)
+            (request.user.is_admin or request.user.is_vendor)
         )
 
 

@@ -22,7 +22,14 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route index element={<Dashboard />} />
+            <Route
+              index
+              element={
+                <RestrictedRoute disallowRoles={['DESIGNER']} redirectTo="/sales">
+                  <Dashboard />
+                </RestrictedRoute>
+              }
+            />
             <Route path="clients" element={<Clients />} />
             <Route path="products" element={<Products />} />
             <Route path="simple-inventory" element={<SimpleInventory />} />
@@ -31,7 +38,14 @@ function App() {
             <Route path="quotations" element={<Quotations />} />
             <Route path="sales" element={<Sales />} />
             <Route path="expenses" element={<Expenses />} />
-            <Route path="reports" element={<Reports />} />
+            <Route
+              path="reports"
+              element={
+                <RestrictedRoute disallowRoles={['DESIGNER']} redirectTo="/sales">
+                  <Reports />
+                </RestrictedRoute>
+              }
+            />
             <Route path="users" element={<AdminRoute><Users /></AdminRoute>} />
             <Route path="profile" element={<Profile />} />
           </Route>
@@ -49,6 +63,14 @@ function ProtectedRoute({ children }) {
 function AdminRoute({ children }) {
   const { user } = useAuthStore()
   return user?.role === 'ADMIN' ? children : <Navigate to="/" />
+}
+
+function RestrictedRoute({ children, disallowRoles = [], redirectTo = '/' }) {
+  const { user } = useAuthStore()
+  if (user && disallowRoles.includes(user.role)) {
+    return <Navigate to={redirectTo} />
+  }
+  return children
 }
 
 export default App

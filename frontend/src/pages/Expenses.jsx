@@ -76,11 +76,11 @@ export default function Expenses() {
     openPdfWithToken(`${baseUrl}/expenses/export_pdf/${params.toString() ? `?${params.toString()}` : ''}`)
   }
 
-  const formatExpenseDate = (value) => {
+  const formatExpenseDateTime = (value) => {
     if (!value) return 'N/D'
     const parsed = new Date(value)
     if (Number.isNaN(parsed.getTime())) return 'N/D'
-    return format(parsed, 'dd/MM/yyyy')
+    return format(parsed, 'dd/MM/yyyy HH:mm')
   }
 
   const paginatedExpenses = useMemo(() => {
@@ -273,7 +273,7 @@ export default function Expenses() {
                       />
                     </td>
                   )}
-                  <td className="px-6 py-4 text-sm">{formatExpenseDate(expense.date)}</td>
+                  <td className="px-6 py-4 text-sm">{formatExpenseDateTime(expense.date || expense.created_at)}</td>
                   <td className="px-6 py-4 text-sm">{expense.description}</td>
                   <td className="px-6 py-4 text-sm font-semibold">L {parseFloat(expense.amount).toLocaleString('es-HN', { minimumFractionDigits: 2 })}</td>
                   <td className="px-6 py-4 text-sm">{expense.created_by_name || 'N/D'}</td>

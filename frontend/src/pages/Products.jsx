@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { productService, categoryService } from '../services/productService'
 import { simpleInventoryService } from '../services/simpleInventoryService'
 import { Plus, Edit, Trash2, Package } from 'lucide-react'
@@ -35,6 +35,11 @@ export default function Products() {
       setLoading(false)
     }
   }
+
+  const manualLowStockCount = useMemo(() => {
+    if (!Array.isArray(inventoryProducts)) return 0
+    return inventoryProducts.filter(item => Number(item.quantity) <= 3).length
+  }, [inventoryProducts])
 
   const handleDelete = async (id) => {
     const confirmed = await confirmDialog({
@@ -80,7 +85,7 @@ export default function Products() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
           { label: 'Total Productos', value: products.length, icon: Package, color: 'bg-blue-500' },
-          { label: 'Stock Bajo', value: products.filter(p => p.stock_status === 'STOCK_BAJO').length, icon: Package, color: 'bg-yellow-500' },
+          { label: 'Stock bajo Inventario Manual (≤3)', value: manualLowStockCount, icon: Package, color: 'bg-yellow-500' },
         ].map((stat, idx) => (
           <div key={idx} className="card">
             <div className="flex items-center justify-between">

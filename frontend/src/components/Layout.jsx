@@ -19,7 +19,7 @@ export default function Layout() {
     navigate('/login')
   }
 
-  const navigation = [
+  const baseNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Ventas', href: '/sales', icon: DollarSign },
     { name: 'Gastos', href: '/expenses', icon: Receipt },
@@ -29,6 +29,14 @@ export default function Layout() {
     { name: 'Cotizaciones', href: '/quotations', icon: FileText },
     { name: 'Reportes', href: '/reports', icon: BarChart3 },
   ]
+
+  const restrictedForVendors = ['/', '/reports']
+  let navigation = baseNavigation.filter((item) => {
+    if (user?.role === 'DESIGNER') {
+      return !restrictedForVendors.includes(item.href)
+    }
+    return true
+  })
 
   if (user?.role === 'ADMIN') {
     navigation.push({ name: 'Usuarios', href: '/users', icon: Settings })
@@ -99,7 +107,7 @@ export default function Layout() {
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {user?.role === 'ADMIN' ? 'Administrador' : 
-                   user?.role === 'SELLER' ? 'Vendedor' : 'Diseñador'}
+                   user?.role === 'SELLER' ? 'Operaciones' : 'Vendedor'}
                 </p>
               </div>
             </div>

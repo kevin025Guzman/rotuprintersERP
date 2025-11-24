@@ -10,18 +10,19 @@ class IsAdminOrReadOnly(BasePermission):
             return request.user and request.user.is_authenticated
         return request.user and request.user.is_authenticated and request.user.role == 'ADMIN'
 
-class IsAdminOrSeller(BasePermission):
+class IsAdminOrOperations(BasePermission):
     """
-    Permiso que permite a administradores y vendedores realizar acciones.
+    Permiso que permite a administradores y Operaciones realizar acciones.
     """
+
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and (
             request.user.role in ['ADMIN', 'SELLER']
         )
 
 
-class IsAdminOrSellerOrReadOnly(BasePermission):
-    """Permite lectura a cualquier autenticado y escritura a admin/vendedor."""
+class IsAdminOrOperationsOrReadOnly(BasePermission):
+    """Permite lectura a cualquier autenticado y escritura a admin/Operaciones."""
 
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:

@@ -8,8 +8,8 @@ class User(AbstractUser):
     """
     class Role(models.TextChoices):
         ADMIN = 'ADMIN', 'Administrador'
-        SELLER = 'SELLER', 'Vendedor'
-        DESIGNER = 'DESIGNER', 'Diseñador'
+        SELLER = 'SELLER', 'Operaciones'
+        DESIGNER = 'DESIGNER', 'Vendedor'
     
     email = models.EmailField(unique=True)
     role = models.CharField(
@@ -35,8 +35,18 @@ class User(AbstractUser):
     
     @property
     def is_seller(self):
-        return self.role == self.Role.SELLER
+        return self.is_operations
     
     @property
     def is_designer(self):
+        return self.is_vendor
+
+    @property
+    def is_operations(self):
+        """Former 'seller' role, now named Operaciones."""
+        return self.role == self.Role.SELLER
+
+    @property
+    def is_vendor(self):
+        """Former 'designer' role, now named Vendedor."""
         return self.role == self.Role.DESIGNER

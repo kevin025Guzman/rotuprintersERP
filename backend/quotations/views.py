@@ -7,6 +7,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Quotation, QuotationItem
@@ -45,6 +46,11 @@ class QuotationViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return QuotationListSerializer
         return QuotationSerializer
+    
+    def perform_destroy(self, instance):
+        if not getattr(self.request.user, 'is_admin', False):
+            raise PermissionDenied('Solo administradores pueden eliminar cotizaciones.')
+        instance.delete()
     
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
@@ -266,6 +272,19 @@ class QuotationViewSet(viewsets.ModelViewSet):
         )
         response.write(pdf)
         return response
+
+    @action(detail=False, methods=['post'], url_path='delete_bulk')
+    def delete_bulk(self, request):
+        user = request.user
+        if not getattr(user, 'is_admin', False):
+            return Response({'detail': 'Solo administradores pueden eliminar cotizaciones.'}, status=status.HTTP_403_FORBIDDEN)
+        ids = request.data.get('ids')
+        if not isinstance(ids, list) or not ids:
+            return Response({'detail': 'Debe proporcionar una lista de IDs.'}, status=status.HTTP_400_BAD_REQUEST)
+        quotations = Quotation.objects.filter(id__in=ids)
+        deleted = quotations.count()
+        quotations.delete()
+        return Response({'deleted': deleted})
 
 
 class QuotationItemViewSet(viewsets.ModelViewSet):
