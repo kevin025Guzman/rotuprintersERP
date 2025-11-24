@@ -2,7 +2,8 @@ import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { 
   LayoutDashboard, Users, Package, FileText, DollarSign, 
-  BarChart3, Settings, LogOut, Menu, X, Moon, Sun, Receipt
+  BarChart3, Settings, LogOut, Menu, X, Moon, Sun, Receipt,
+  UserCircle2
 } from 'lucide-react'
 import { useState } from 'react'
 import { useDarkMode } from '../hooks/useDarkMode'
@@ -28,6 +29,7 @@ export default function Layout() {
     { name: 'Inventario', href: '/simple-inventory', icon: Package },
     { name: 'Cotizaciones', href: '/quotations', icon: FileText },
     { name: 'Reportes', href: '/reports', icon: BarChart3 },
+    { name: 'Mi Perfil', href: '/profile', icon: UserCircle2 }
   ]
 
   const restrictedForVendors = ['/', '/reports']
